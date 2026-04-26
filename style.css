@@ -33,7 +33,7 @@ button:hover {
 }
 
 button:disabled {
-  opacity: 0.45;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -47,20 +47,22 @@ button:disabled {
   display: block;
 }
 
-.startBox {
+#startBox,
+#passedBox {
   position: absolute;
   left: 50%;
   top: 50%;
+  width: min(520px, 90vw);
   transform: translate(-50%, -50%);
-  background: rgba(216, 194, 154, 0.88);
-  border: 2px solid rgba(40, 25, 12, 0.8);
-  box-shadow: 0 0 22px rgba(0,0,0,0.6);
   padding: 1.4rem;
-  max-width: 520px;
   text-align: center;
+  background: rgba(216, 194, 154, 0.9);
+  border: 2px solid rgba(40, 25, 12, 0.85);
+  box-shadow: 0 0 24px rgba(0,0,0,0.65);
 }
 
-.startBox h1 {
+#startBox h1,
+#passedBox h1 {
   margin-top: 0;
   letter-spacing: 0.12em;
 }
@@ -72,43 +74,60 @@ button:disabled {
   margin: 1rem 0;
 }
 
-.small {
-  margin-top: 1.4rem;
-  font-weight: bold;
-}
-
-#videoPlayer {
-  position: absolute;
-  right: 3vw;
-  top: 3vh;
-  width: 28vw;
-  max-width: 420px;
-  min-width: 260px;
-  background: #000;
-  border: 2px solid #2b1b10;
-  box-shadow: 0 0 18px rgba(0,0,0,0.7);
-}
-
+/* Auftragskarte: genau auf das leere Notizblatt unten rechts */
 #taskCard {
   position: absolute;
-  right: 5.5vw;
-  bottom: 8vh;
+  right: 5.3vw;
+  bottom: 8.3vh;
   width: 27vw;
   min-width: 310px;
   height: 18vh;
-  min-height: 140px;
-  padding: 1.2rem 1.4rem;
+  min-height: 135px;
+  padding: 1.2rem 1.35rem;
   background: transparent;
   border: none;
   box-shadow: none;
-  white-space: pre-wrap;
-  font-size: clamp(0.95rem, 1.25vw, 1.25rem);
+  color: #2b1a10;
+  font-size: clamp(0.9rem, 1.15vw, 1.18rem);
   line-height: 1.35;
-  color: #2a1a10;
+  white-space: pre-wrap;
   overflow: hidden;
 }
 
-#incomingStrip {
+/* Eingabefeld nur bei Empfangsaufgaben */
+#receivePanel {
+  display: none;
+  position: absolute;
+  right: 5.3vw;
+  bottom: 28vh;
+  width: 27vw;
+  min-width: 310px;
+  padding: 0.8rem;
+  background: rgba(216, 194, 154, 0.86);
+  border: 2px solid rgba(40, 25, 12, 0.75);
+  box-shadow: 0 0 16px rgba(0,0,0,0.45);
+}
+
+#receivePanel.active {
+  display: block;
+}
+
+#receiveInstruction {
+  margin-top: 0;
+  font-size: 0.9rem;
+}
+
+#receiveInput {
+  width: 100%;
+  padding: 0.65rem;
+  margin-bottom: 0.6rem;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1rem;
+  border: 2px solid #2b1b10;
+  background: #f1dfb8;
+}
+
+#morseStrip {
   position: absolute;
   left: 31vw;
   bottom: 3vh;
@@ -142,79 +161,81 @@ button:disabled {
   letter-spacing: 0.12em;
 }
 
-#hiddenInputInfo {
+#feedback {
+  display: none;
   position: absolute;
   left: 3vw;
-  bottom: 14vh;
+  bottom: 15vh;
   width: 260px;
   padding: 0.75rem;
-  background: rgba(216, 194, 154, 0.78);
-  border: 2px solid rgba(40, 25, 12, 0.7);
-  font-size: 0.9rem;
-}
-
-#checkButton {
-  position: absolute;
-  left: 3vw;
-  bottom: 23vh;
-}
-
-#repeatButton {
-  position: absolute;
-  left: 3vw;
-  bottom: 30vh;
-}
-
-#feedback {
-  position: absolute;
-  left: 3vw;
-  bottom: 38vh;
-  width: 260px;
-  padding: 0.65rem;
-  background: rgba(216, 194, 154, 0.82);
-  border: 2px solid rgba(40, 25, 12, 0.7);
+  background: rgba(216, 194, 154, 0.88);
+  border: 2px solid rgba(40, 25, 12, 0.75);
+  box-shadow: 0 0 14px rgba(0,0,0,0.45);
   font-weight: bold;
-  display: none;
 }
 
-#feedback.show {
+#feedback.active {
   display: block;
 }
 
-.correct {
-  color: #153f1d;
+#feedback.correct {
+  color: #143d1a;
 }
 
-.wrong {
-  color: #6b1414;
+#feedback.wrong {
+  color: #671313;
 }
 
 #passwordMorse {
   margin-top: 1rem;
-  padding: 0.8rem;
-  background: rgba(22, 13, 7, 0.85);
+  padding: 0.9rem;
+  background: rgba(22, 13, 7, 0.86);
   color: #e7d4a5;
   text-align: left;
   white-space: pre-wrap;
   letter-spacing: 0.1em;
 }
 
+/* Video-Pop-up */
+.videoOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.videoPopup {
+  width: min(900px, 92vw);
+  background: #111;
+  border: 2px solid #d8c29a;
+  padding: 0.8rem;
+  box-shadow: 0 0 30px rgba(0,0,0,0.9);
+}
+
+.videoPopup video {
+  width: 100%;
+  max-height: 75vh;
+  display: block;
+  background: black;
+}
+
+#skipVideoBtn {
+  margin-top: 0.8rem;
+}
+
 @media (max-width: 900px) {
-  #videoPlayer {
-    width: 80vw;
-    left: 10vw;
+  #taskCard,
+  #receivePanel {
+    left: 8vw;
     right: auto;
+    width: 84vw;
   }
 
-  #taskCard {
-    width: 80vw;
-    left: 10vw;
-    right: auto;
-    bottom: 9vh;
-  }
-
-  #incomingStrip {
-    left: 10vw;
-    width: 80vw;
+  #morseStrip {
+    left: 8vw;
+    width: 84vw;
   }
 }
