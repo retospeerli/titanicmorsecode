@@ -33,18 +33,17 @@ body {
 
 #startBox {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 3vh;
+  left: 3vw;
 
-  width: min(520px, 90vw);
-  padding: 1.5rem;
+  width: min(420px, 80vw);
+  padding: 1rem;
 
   background: transparent;
   border: none;
   box-shadow: none;
 
-  text-align: center;
+  text-align: left;
 }
 
 button {
