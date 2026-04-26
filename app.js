@@ -16,6 +16,12 @@ Object.keys(MORSE_MAP).forEach((key) => {
   REVERSE_MORSE[MORSE_MAP[key]] = key;
 });
 
+const UNIT = 110;
+const DOT_MAX = UNIT * 2.2;
+const LETTER_PAUSE = UNIT * 3.2;
+const FINISH_PAUSE = 3000;
+const ERROR_SIGNAL = "?";
+
 let lang = "de";
 let stepIndex = 0;
 
@@ -36,255 +42,255 @@ let recognizedLetters = [];
 let finalizeLetterTimer = null;
 let finishAttemptTimer = null;
 
-let lastIncomingMessage = "";
+let currentReceiveMessage = "";
 
-const UNIT = 110;
-const DOT_MAX = UNIT * 2.2;
-const LETTER_PAUSE = UNIT * 3.2;
-const FINISH_PAUSE = 3000;
-
-const ERROR_SIGNAL = "?";
-
-const steps = [
+const flow = [
   {
     type: "video",
     src: "titanic1.mp4"
   },
   {
     type: "send",
-    task: {
-      de: "Sende diese Nachricht:\n\nCQD CQD CQD DE MGY MGY MGY",
-      en: "Transmit this message:\n\nCQD CQD CQD DE MGY MGY MGY"
-    },
-    expected: "CQD CQD CQD DE MGY MGY MGY",
-    incoming: "MCP DE MGY COME AT ONCE WE HAVE STRUCK ICEBERG"
+    message: "CQD CQD CQD DE MGY MGY MGY"
+  },
+  {
+    type: "receive",
+    message: {
+      de: "MGY DE MCP SOFORT KOMMEN HABEN EISBERG GERAMMT",
+      en: "MGY DE MCP COME AT ONCE WE HAVE STRUCK ICEBERG"
+    }
   },
   {
     type: "send",
-    task: {
-      de: "Sende diese Nachricht:\n\nMCP DE MGY\nSOFORT KOMMEN HABEN EISBERG GERAMMT",
-      en: "Transmit this message:\n\nMCP DE MGY\nCOME AT ONCE WE HAVE STRUCK ICEBERG"
-    },
-    expected: {
+    message: {
       de: "MCP DE MGY SOFORT KOMMEN HABEN EISBERG GERAMMT",
       en: "MCP DE MGY COME AT ONCE WE HAVE STRUCK ICEBERG"
-    },
-    incoming: {
+    }
+  },
+  {
+    type: "receive",
+    message: {
       de: "MGY DE MPA WAS IST IHRE POSITION",
       en: "MGY DE MPA WHAT IS YOUR POSITION"
     }
   },
   {
     type: "send",
-    task: {
-      de: "Sende diese Nachricht:\n\nMPA DE MGY\n41.44 N 50.24 W\nFORDERE SOFORTIGE HILFE AN",
-      en: "Transmit this message:\n\nMPA DE MGY\n41.44 N 50.24 W\nREQUIRE IMMEDIATE ASSISTANCE"
-    },
-    expected: {
+    message: {
       de: "MPA DE MGY 41.44 N 50.24 W FORDERE SOFORTIGE HILFE AN",
       en: "MPA DE MGY 41.44 N 50.24 W REQUIRE IMMEDIATE ASSISTANCE"
-    },
-    incoming: {
+    }
+  },
+  {
+    type: "receive",
+    message: {
       de: "MGY DE MCP VERSTANDEN FAHREN MIT VOLLER KRAFT",
       en: "MGY DE MCP RECEIVED COMING AT FULL SPEED"
     }
   },
   {
-    type: "send",
-    task: {
-      de: "Sende diese Nachricht:\n\nMGY DE MCP\nVERSTANDEN FAHREN MIT VOLLER KRAFT",
-      en: "Transmit this message:\n\nMGY DE MCP\nRECEIVED COMING AT FULL SPEED"
-    },
-    expected: {
-      de: "MGY DE MCP VERSTANDEN FAHREN MIT VOLLER KRAFT",
-      en: "MGY DE MCP RECEIVED COMING AT FULL SPEED"
-    },
-    incoming: {
+    type: "receive",
+    message: {
       de: "MGY DE MPA SIND UNTERWEGS",
       en: "MGY DE MPA ON OUR WAY"
     }
   },
   {
-    type: "send",
-    task: {
-      de: "Sende diese Nachricht:\n\nMGY DE MPA\nSIND UNTERWEGS",
-      en: "Transmit this message:\n\nMGY DE MPA\nON OUR WAY"
-    },
-    expected: {
-      de: "MGY DE MPA SIND UNTERWEGS",
-      en: "MGY DE MPA ON OUR WAY"
-    },
-    nextVideo: "titanic2.mp4"
+    type: "video",
+    src: "titanic2.mp4"
   },
   {
     type: "send",
-    task: {
-      de: "Sende diese Nachricht:\n\nMGY CQD CQD DE MGY\nWE ARE SINKING FAST\nPASSENGERS BEING PUT INTO BOATS",
-      en: "Transmit this message:\n\nMGY CQD CQD DE MGY\nWE ARE SINKING FAST\nPASSENGERS BEING PUT INTO BOATS"
-    },
-    expected: "MGY CQD CQD DE MGY WE ARE SINKING FAST PASSENGERS BEING PUT INTO BOATS",
-    finalVideo: "titanic3.mp4"
+    message: "MGY CQD CQD DE MGY WE ARE SINKING FAST PASSENGERS BEING PUT INTO BOATS"
+  },
+  {
+    type: "video",
+    src: "titanic3.mp4"
+  },
+  {
+    type: "password",
+    message: "GUGLIELMO MARCONI"
   }
 ];
 
 const startScreen = document.getElementById("startScreen");
-const gameScreen = document.getElementById("gameScreen");
+const appScreen = document.getElementById("appScreen");
 const passedScreen = document.getElementById("passedScreen");
 
-const videoPlayer = document.getElementById("videoPlayer");
-const taskCard = document.getElementById("taskCard");
-const incomingStrip = document.getElementById("incomingStrip");
-const currentSymbol = document.getElementById("currentSymbol");
-const checkButton = document.getElementById("checkButton");
-const repeatButton = document.getElementById("repeatButton");
-const feedback = document.getElementById("feedback");
-const passwordMorse = document.getElementById("passwordMorse");
-const passedText = document.getElementById("passedText");
-
-const keyButton = document.getElementById("keyButton");
+const langDeBtn = document.getElementById("langDeBtn");
+const langEnBtn = document.getElementById("langEnBtn");
+const chooseKeyBtn = document.getElementById("chooseKeyBtn");
 const keyInfo = document.getElementById("keyInfo");
-const startButton = document.getElementById("startButton");
+const startBtn = document.getElementById("startBtn");
 
-function selectLang(selected) {
-  lang = selected;
-  keyInfo.textContent = `Morsetaste: ${morseKeyLabel}`;
+const taskCard = document.getElementById("taskCard");
+const receivePanel = document.getElementById("receivePanel");
+const receiveInstruction = document.getElementById("receiveInstruction");
+const receiveInput = document.getElementById("receiveInput");
+const checkReceiveBtn = document.getElementById("checkReceiveBtn");
+const repeatReceiveBtn = document.getElementById("repeatReceiveBtn");
+
+const morseStrip = document.getElementById("morseStrip");
+const currentSymbol = document.getElementById("currentSymbol");
+const currentSymbolLabel = document.getElementById("currentSymbolLabel");
+const feedback = document.getElementById("feedback");
+
+const passedText = document.getElementById("passedText");
+const passwordMorse = document.getElementById("passwordMorse");
+
+init();
+
+function init() {
+  langDeBtn.addEventListener("click", () => setLanguage("de"));
+  langEnBtn.addEventListener("click", () => setLanguage("en"));
+  chooseKeyBtn.addEventListener("click", chooseMorseKey);
+  startBtn.addEventListener("click", startExam);
+  checkReceiveBtn.addEventListener("click", checkReceiveInput);
+  repeatReceiveBtn.addEventListener("click", repeatReceiveMessage);
+
+  receiveInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      checkReceiveInput();
+    }
+  });
+
+  document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("keyup", handleKeyUp);
+
+  window.addEventListener("blur", () => {
+    if (isPressing) handlePressEnd();
+  });
+
+  setLanguage("de");
 }
 
-keyButton.addEventListener("click", () => {
+function setLanguage(selected) {
+  lang = selected;
+
+  if (lang === "de") {
+    startBtn.textContent = "Prüfung starten";
+    chooseKeyBtn.textContent = "Taste wählen";
+    keyInfo.textContent = `Morsetaste: ${morseKeyLabel}`;
+    currentSymbolLabel.textContent = "Aktuelles Zeichen";
+    checkReceiveBtn.textContent = "Prüfen";
+    repeatReceiveBtn.textContent = "Nochmals hören";
+  } else {
+    startBtn.textContent = "Start exam";
+    chooseKeyBtn.textContent = "Choose key";
+    keyInfo.textContent = `Morse key: ${morseKeyLabel}`;
+    currentSymbolLabel.textContent = "Current symbol";
+    checkReceiveBtn.textContent = "Check";
+    repeatReceiveBtn.textContent = "Hear again";
+  }
+}
+
+function chooseMorseKey() {
   waitingForKeyChoice = true;
   keyInfo.textContent = lang === "de"
     ? "Drücke jetzt deine gewünschte Morsetaste."
     : "Press your chosen Morse key now.";
-});
+}
 
-startButton.addEventListener("click", startExam);
-checkButton.addEventListener("click", finishAttemptManually);
-repeatButton.addEventListener("click", repeatIncoming);
-
-document.addEventListener("keydown", (event) => {
+function handleKeyDown(event) {
   if (waitingForKeyChoice) {
     event.preventDefault();
     morseKeyCode = event.code;
     morseKeyLabel = getReadableKeyName(event);
     waitingForKeyChoice = false;
-    keyInfo.textContent = `Morsetaste: ${morseKeyLabel}`;
-    startButton.disabled = false;
+    keyInfo.textContent = lang === "de"
+      ? `Morsetaste: ${morseKeyLabel}`
+      : `Morse key: ${morseKeyLabel}`;
     return;
   }
 
-  if (!gameScreen.classList.contains("active")) return;
+  if (!appScreen.classList.contains("active")) return;
+
+  const step = flow[stepIndex];
+  if (!step || step.type !== "send") return;
   if (event.code !== morseKeyCode) return;
   if (event.repeat) return;
 
   event.preventDefault();
   handlePressStart();
-});
+}
 
-document.addEventListener("keyup", (event) => {
-  if (!gameScreen.classList.contains("active")) return;
+function handleKeyUp(event) {
+  if (!appScreen.classList.contains("active")) return;
+
+  const step = flow[stepIndex];
+  if (!step || step.type !== "send") return;
   if (event.code !== morseKeyCode) return;
 
   event.preventDefault();
   handlePressEnd();
-});
-
-window.addEventListener("blur", () => {
-  if (isPressing) handlePressEnd();
-});
+}
 
 function startExam() {
+  ensureAudio();
+
   startScreen.classList.remove("active");
-  gameScreen.classList.add("active");
   passedScreen.classList.remove("active");
+  appScreen.classList.add("active");
 
   stepIndex = 0;
   loadStep();
 }
 
 function loadStep() {
-  resetInput();
+  clearAllTimers();
+  resetSendInput();
   clearFeedback();
 
-  const step = steps[stepIndex];
+  receivePanel.classList.remove("active");
+  receiveInput.value = "";
+  morseStrip.textContent = "";
+  currentReceiveMessage = "";
+
+  const step = flow[stepIndex];
+  if (!step) return;
 
   if (step.type === "video") {
-    showVideoPopup(step.src, () => {
-      stepIndex++;
-      loadStep();
-    });
+    taskCard.textContent = "";
+    showVideoPopup(step.src, nextStep);
     return;
   }
 
-  taskCard.textContent = getLangValue(step.task);
-  incomingStrip.textContent = "";
-  lastIncomingMessage = "";
+  if (step.type === "send") {
+    const message = getLangValue(step.message);
+    taskCard.textContent = `${label("Sende diese Nachricht:", "Transmit this message:")}\n\n${message}`;
+    receivePanel.classList.remove("active");
+    return;
+  }
 
-  videoPlayer.style.display = "none";
-}
+  if (step.type === "receive") {
+    currentReceiveMessage = getLangValue(step.message);
+    taskCard.textContent = label(
+      "Höre die Nachricht. Schreibe sie auf Papier mit. Tippe sie danach hier ein.",
+      "Listen to the message. Write it down on paper. Then type it here."
+    );
 
-function finishAttemptManually() {
-  finalizeCurrentLetter();
-  checkCurrentStep();
-}
+    receiveInstruction.textContent = label(
+      "Empfangene Nachricht eintippen:",
+      "Type received message:"
+    );
 
-function checkCurrentStep() {
-  const step = steps[stepIndex];
-  const userText = normalize(recognizedLetters.join(""));
-  const expectedText = normalize(getLangValue(step.expected));
+    receivePanel.classList.add("active");
+    receiveInput.value = "";
+    receiveInput.focus();
 
-  if (userText === expectedText) {
-    showFeedback(lang === "de" ? "Richtig." : "Correct.", "correct");
+    morseStrip.textContent = textToMorse(currentReceiveMessage);
+    playTextAsMorse(currentReceiveMessage);
+    return;
+  }
 
-    setTimeout(async () => {
-      if (step.incoming) {
-        lastIncomingMessage = getLangValue(step.incoming);
-        incomingStrip.textContent = textToMorse(lastIncomingMessage);
-        await playTextAsMorse(lastIncomingMessage);
-      }
-
-      if (step.nextVideo) {
-        await wait(600);
-        showVideoPopup(step.nextVideo, () => {
-          stepIndex++;
-          loadStep();
-        });
-        return;
-      }
-
-      if (step.finalVideo) {
-        await wait(600);
-        showVideoPopup(step.finalVideo, finishExam);
-        return;
-      }
-
-      stepIndex++;
-      loadStep();
-    }, 800);
-
-  } else {
-    showFeedback(lang === "de" ? "Nicht verstanden." : "Not understood.", "wrong");
-    playTextAsMorse(ERROR_SIGNAL);
-    resetInput();
+  if (step.type === "password") {
+    finishExam();
   }
 }
 
-function finishExam() {
-  gameScreen.classList.remove("active");
-  passedScreen.classList.add("active");
-
-  passedText.textContent = lang === "de"
-    ? "Die Prüfung ist bestanden. Passwort 3 wird nun gemorst:"
-    : "The exam is passed. Password 3 is now sent in Morse:";
-
-  const password = "GUGLIELMO MARCONI";
-  passwordMorse.textContent = textToMorse(password);
-  playTextAsMorse(password);
-}
-
-function repeatIncoming() {
-  if (!lastIncomingMessage) return;
-  incomingStrip.textContent = textToMorse(lastIncomingMessage);
-  playTextAsMorse(lastIncomingMessage);
+function nextStep() {
+  stepIndex++;
+  loadStep();
 }
 
 function handlePressStart() {
@@ -293,11 +299,10 @@ function handlePressStart() {
   clearTimeout(finalizeLetterTimer);
   clearTimeout(finishAttemptTimer);
 
-  ensureAudio();
-  startTone();
-
   isPressing = true;
   pressStartTime = performance.now();
+
+  startTone();
 }
 
 function handlePressEnd() {
@@ -316,10 +321,7 @@ function handlePressEnd() {
   finalizeLetterTimer = setTimeout(finalizeCurrentLetter, LETTER_PAUSE);
 
   clearTimeout(finishAttemptTimer);
-  finishAttemptTimer = setTimeout(() => {
-    finalizeCurrentLetter();
-    checkCurrentStep();
-  }, FINISH_PAUSE);
+  finishAttemptTimer = setTimeout(finishSendAttempt, FINISH_PAUSE);
 }
 
 function finalizeCurrentLetter() {
@@ -332,17 +334,80 @@ function finalizeCurrentLetter() {
   currentSymbol.textContent = "–";
 }
 
-function resetInput() {
+function finishSendAttempt() {
+  finalizeCurrentLetter();
+
+  const step = flow[stepIndex];
+  if (!step || step.type !== "send") return;
+
+  const userText = normalize(recognizedLetters.join(""));
+  const expectedText = normalize(getLangValue(step.message));
+
+  if (userText === expectedText) {
+    showFeedback(label("Richtig.", "Correct."), "correct");
+
+    setTimeout(() => {
+      nextStep();
+    }, 700);
+  } else {
+    showFeedback(label("Nicht verstanden. Aufgabe wird neu gestartet.", "Not understood. Task restarts."), "wrong");
+    playTextAsMorse(ERROR_SIGNAL);
+
+    setTimeout(() => {
+      loadStep();
+    }, 1200);
+  }
+}
+
+function checkReceiveInput() {
+  const step = flow[stepIndex];
+  if (!step || step.type !== "receive") return;
+
+  const typed = normalize(receiveInput.value);
+  const expected = normalize(getLangValue(step.message));
+
+  if (typed === expected) {
+    showFeedback(label("Richtig.", "Correct."), "correct");
+
+    setTimeout(() => {
+      nextStep();
+    }, 700);
+  } else {
+    showFeedback(label("Nicht verstanden. Aufgabe wird neu gestartet.", "Not understood. Task restarts."), "wrong");
+    playTextAsMorse(ERROR_SIGNAL);
+
+    setTimeout(() => {
+      loadStep();
+    }, 1200);
+  }
+}
+
+function repeatReceiveMessage() {
+  if (!currentReceiveMessage) return;
+  morseStrip.textContent = textToMorse(currentReceiveMessage);
+  playTextAsMorse(currentReceiveMessage);
+}
+
+function resetSendInput() {
   recognizedLetters = [];
   currentInputSymbols = "";
   currentSymbol.textContent = "–";
+  isPressing = false;
+  stopTone();
+}
 
-  clearTimeout(finalizeLetterTimer);
-  clearTimeout(finishAttemptTimer);
+function showFeedback(text, type) {
+  feedback.textContent = text;
+  feedback.className = `active ${type}`;
+}
+
+function clearFeedback() {
+  feedback.textContent = "";
+  feedback.className = "";
 }
 
 function showVideoPopup(src, callback) {
-  let overlay = document.createElement("div");
+  const overlay = document.createElement("div");
   overlay.className = "videoOverlay";
 
   overlay.innerHTML = `
@@ -369,14 +434,19 @@ function showVideoPopup(src, callback) {
   popupVideo.play().catch(() => {});
 }
 
-function showFeedback(text, type) {
-  feedback.textContent = text;
-  feedback.className = `show ${type}`;
-}
+function finishExam() {
+  appScreen.classList.remove("active");
+  passedScreen.classList.add("active");
 
-function clearFeedback() {
-  feedback.textContent = "";
-  feedback.className = "";
+  const password = "GUGLIELMO MARCONI";
+
+  passedText.textContent = label(
+    "Die Prüfung ist bestanden. Passwort 3 wird nun gemorst:",
+    "The exam is passed. Password 3 is now sent in Morse:"
+  );
+
+  passwordMorse.textContent = textToMorse(password);
+  playTextAsMorse(password);
 }
 
 function normalize(text) {
@@ -415,8 +485,12 @@ function getLangValue(value) {
   return value[lang];
 }
 
+function label(de, en) {
+  return lang === "de" ? de : en;
+}
+
 function getReadableKeyName(event) {
-  if (event.code === "Space") return "Leertaste";
+  if (event.code === "Space") return lang === "de" ? "Leertaste" : "Space";
   if (event.code.startsWith("Key")) return event.code.replace("Key", "");
   if (event.code.startsWith("Digit")) return event.code.replace("Digit", "");
   if (event.code.startsWith("Numpad")) return "Num " + event.code.replace("Numpad", "");
@@ -467,10 +541,9 @@ function stopTone() {
 async function playTextAsMorse(text) {
   ensureAudio();
 
-  checkButton.disabled = true;
-  repeatButton.disabled = true;
-
   const normalized = normalizeForMorse(text);
+
+  disableControls(true);
 
   for (const char of normalized) {
     if (char === " ") {
@@ -485,8 +558,7 @@ async function playTextAsMorse(text) {
     await wait(UNIT * 3);
   }
 
-  checkButton.disabled = false;
-  repeatButton.disabled = false;
+  disableControls(false);
 }
 
 async function playMorsePattern(pattern) {
@@ -502,6 +574,19 @@ async function playMorsePattern(pattern) {
       await wait(UNIT);
     }
   }
+}
+
+function disableControls(disabled) {
+  checkReceiveBtn.disabled = disabled;
+  repeatReceiveBtn.disabled = disabled;
+  startBtn.disabled = disabled;
+}
+
+function clearAllTimers() {
+  clearTimeout(finalizeLetterTimer);
+  clearTimeout(finishAttemptTimer);
+  finalizeLetterTimer = null;
+  finishAttemptTimer = null;
 }
 
 function wait(ms) {
