@@ -35,17 +35,34 @@ body {
   position: fixed;
   top: 3vh;
   left: 3vw;
-
-  transform: translateX(50%);
-  
-  width: min(420px, 80vw);
+  width: 300px;
   padding: 1rem;
-
   background: transparent;
   border: none;
   box-shadow: none;
-
   text-align: left;
+  color: #f5e6c4;
+  text-shadow: 0 0 6px rgba(0,0,0,0.9);
+}
+
+#startBox h1 {
+  font-weight: 900;
+  font-size: 2rem;
+  letter-spacing: 0.12em;
+  margin-top: 0;
+}
+
+#endBox {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(520px, 90vw);
+  transform: translate(-50%, -50%);
+  background: rgba(216, 194, 154, 0.9);
+  padding: 1.5rem;
+  border: 2px solid #2b1b10;
+  text-align: center;
+  box-shadow: 0 0 25px rgba(0,0,0,0.65);
 }
 
 button {
@@ -69,10 +86,9 @@ button:disabled {
 
 #taskCard {
   position: absolute;
-  right: 11vw;
+  right: 7vw;
   bottom: 11vh;
-  width: 27vw;
-  min-width: 275px;
+  width: 230px;
   height: 18vh;
   padding: 0.6rem 0.8rem;
   background: transparent;
@@ -82,6 +98,7 @@ button:disabled {
   font-size: clamp(1.05rem, 1.28vw, 1.35rem);
   font-weight: 700;
   line-height: 1.32;
+  word-break: break-word;
 }
 
 #receiveBox {
@@ -154,6 +171,7 @@ button:disabled {
   border: 2px solid #2b1b10;
   display: none;
   font-weight: bold;
+  font-size: 1.25rem;
 }
 
 #feedback.show {
