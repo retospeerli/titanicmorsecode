@@ -1,249 +1,616 @@
-* {
-  box-sizing: border-box;
+const MORSE_MAP = {
+  A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".",
+  F: "..-.", G: "--.", H: "....", I: "..", J: ".---",
+  K: "-.-", L: ".-..", M: "--", N: "-.", O: "---",
+  P: ".--.", Q: "--.-", R: ".-.", S: "...", T: "-",
+  U: "..-", V: "...-", W: ".--", X: "-..-", Y: "-.--",
+  Z: "--..",
+  0: "-----", 1: ".----", 2: "..---", 3: "...--", 4: "....-",
+  5: ".....", 6: "-....", 7: "--...", 8: "---..", 9: "----.",
+  ".": ".-.-.-",
+  "?": "..--.."
+};
+
+const REVERSE_MORSE = {};
+Object.keys(MORSE_MAP).forEach((key) => {
+  REVERSE_MORSE[MORSE_MAP[key]] = key;
+});
+
+const UNIT = 110;
+const DOT_MAX = UNIT * 2.2;
+const LETTER_PAUSE = UNIT * 3.2;
+const FINISH_PAUSE = 3000;
+const ERROR_SIGNAL = "?";
+
+let lang = "de";
+let stepIndex = 0;
+
+let morseKeyCode = "Space";
+let morseKeyLabel = "Leertaste";
+let waitingForKeyChoice = false;
+
+let audioCtx = null;
+let oscillator = null;
+let gainNode = null;
+
+let isPressing = false;
+let pressStartTime = 0;
+
+let currentInputSymbols = "";
+let recognizedLetters = [];
+
+let finalizeLetterTimer = null;
+let finishAttemptTimer = null;
+
+let currentReceiveMessage = "";
+
+const flow = [
+  { type: "video", src: "titanic1.mp4" },
+
+  {
+    type: "send",
+    message: "CQD CQD CQD DE MGY MGY MGY"
+  },
+
+  {
+    type: "receive",
+    message: {
+      de: "MGY DE MCP SOFORT KOMMEN HABEN EISBERG GERAMMT",
+      en: "MGY DE MCP COME AT ONCE WE HAVE STRUCK ICEBERG"
+    }
+  },
+
+  {
+    type: "send",
+    message: {
+      de: "MCP DE MGY SOFORT KOMMEN HABEN EISBERG GERAMMT",
+      en: "MCP DE MGY COME AT ONCE WE HAVE STRUCK ICEBERG"
+    }
+  },
+
+  {
+    type: "receive",
+    message: {
+      de: "MGY DE MPA WAS IST IHRE POSITION",
+      en: "MGY DE MPA WHAT IS YOUR POSITION"
+    }
+  },
+
+  {
+    type: "send",
+    message: {
+      de: "MPA DE MGY 41.44 N 50.24 W FORDERE SOFORTIGE HILFE AN",
+      en: "MPA DE MGY 41.44 N 50.24 W REQUIRE IMMEDIATE ASSISTANCE"
+    }
+  },
+
+  {
+    type: "receive",
+    message: {
+      de: "MGY DE MCP VERSTANDEN FAHREN MIT VOLLER KRAFT",
+      en: "MGY DE MCP RECEIVED COMING AT FULL SPEED"
+    }
+  },
+
+  {
+    type: "receive",
+    message: {
+      de: "MGY DE MPA SIND UNTERWEGS",
+      en: "MGY DE MPA ON OUR WAY"
+    }
+  },
+
+  { type: "video", src: "titanic2.mp4" },
+
+  {
+    type: "send",
+    message: "MGY CQD CQD DE MGY WE ARE SINKING FAST PASSENGERS BEING PUT INTO BOATS"
+  },
+
+  { type: "video", src: "titanic3.mp4" },
+
+  {
+    type: "password",
+    message: "GUGLIELMO MARCONI"
+  }
+];
+
+const startScreen = document.getElementById("startScreen");
+const appScreen = document.getElementById("appScreen");
+const passedScreen = document.getElementById("passedScreen");
+
+const langDeBtn = document.getElementById("langDeBtn");
+const langEnBtn = document.getElementById("langEnBtn");
+const chooseKeyBtn = document.getElementById("chooseKeyBtn");
+const keyInfo = document.getElementById("keyInfo");
+const startBtn = document.getElementById("startBtn");
+
+const taskCard = document.getElementById("taskCard");
+const receivePanel = document.getElementById("receivePanel");
+const receiveInstruction = document.getElementById("receiveInstruction");
+const receiveInput = document.getElementById("receiveInput");
+const checkReceiveBtn = document.getElementById("checkReceiveBtn");
+const repeatReceiveBtn = document.getElementById("repeatReceiveBtn");
+
+const morseStrip = document.getElementById("morseStrip");
+const currentSymbol = document.getElementById("currentSymbol");
+const currentSymbolLabel = document.getElementById("currentSymbolLabel");
+const feedback = document.getElementById("feedback");
+
+const passedText = document.getElementById("passedText");
+const passwordMorse = document.getElementById("passwordMorse");
+
+init();
+
+function init() {
+  langDeBtn.addEventListener("click", () => setLanguage("de"));
+  langEnBtn.addEventListener("click", () => setLanguage("en"));
+  chooseKeyBtn.addEventListener("click", chooseMorseKey);
+  startBtn.addEventListener("click", startExam);
+  checkReceiveBtn.addEventListener("click", checkReceiveInput);
+  repeatReceiveBtn.addEventListener("click", repeatReceiveMessage);
+
+  receiveInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") checkReceiveInput();
+  });
+
+  document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("keyup", handleKeyUp);
+
+  window.addEventListener("blur", () => {
+    if (isPressing) handlePressEnd();
+  });
+
+  setLanguage("de");
+  setBackground("start");
 }
 
-html, body {
-  margin: 0;
-  min-height: 100%;
-  font-family: "Courier New", Courier, monospace;
-  color: #24180f;
+function setBackground(type) {
+  document.body.classList.remove("bg-start", "bg-video", "bg-task");
+
+  if (type === "start") document.body.classList.add("bg-start");
+  if (type === "video") document.body.classList.add("bg-video");
+  if (type === "task") document.body.classList.add("bg-task");
 }
 
-body {
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  transition: background-image 0.4s ease;
+function setLanguage(selected) {
+  lang = selected;
+
+  if (lang === "de") {
+    startBtn.textContent = "Prüfung starten";
+    chooseKeyBtn.textContent = "Taste wählen";
+    keyInfo.textContent = `Morsetaste: ${morseKeyLabel}`;
+    currentSymbolLabel.textContent = "Aktuelles Zeichen";
+    checkReceiveBtn.textContent = "Prüfen";
+    repeatReceiveBtn.textContent = "Nochmals hören";
+  } else {
+    startBtn.textContent = "Start exam";
+    chooseKeyBtn.textContent = "Choose key";
+    keyInfo.textContent = `Morse key: ${morseKeyLabel}`;
+    currentSymbolLabel.textContent = "Current symbol";
+    checkReceiveBtn.textContent = "Check";
+    repeatReceiveBtn.textContent = "Hear again";
+  }
 }
 
-body.bg-start {
-  background-image: url("./RMSTitanic.jpg");
+function chooseMorseKey() {
+  waitingForKeyChoice = true;
+  keyInfo.textContent = lang === "de"
+    ? "Drücke jetzt deine gewünschte Morsetaste."
+    : "Press your chosen Morse key now.";
 }
 
-body.bg-video {
-  background-image: url("./titanicfunkraum.png");
-}
+function handleKeyDown(event) {
+  if (waitingForKeyChoice) {
+    event.preventDefault();
+    morseKeyCode = event.code;
+    morseKeyLabel = getReadableKeyName(event);
+    waitingForKeyChoice = false;
 
-body.bg-task {
-  background-image: url("./titanicfunkraum2.jpg");
-}
+    keyInfo.textContent = lang === "de"
+      ? `Morsetaste: ${morseKeyLabel}`
+      : `Morse key: ${morseKeyLabel}`;
 
-button {
-  font-family: "Courier New", Courier, monospace;
-  font-size: 1rem;
-  padding: 0.5rem 0.8rem;
-  border: 2px solid #2b1b10;
-  background: #d8c29a;
-  color: #1d130c;
-  cursor: pointer;
-  box-shadow: 2px 2px 0 #2b1b10;
-}
-
-button:hover {
-  background: #ead7ad;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.screen {
-  display: none;
-  min-height: 100vh;
-  position: relative;
-}
-
-.screen.active {
-  display: block;
-}
-
-#startBox,
-#passedBox {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(520px, 90vw);
-  transform: translate(-50%, -50%);
-  padding: 1.4rem;
-  text-align: center;
-  background: rgba(216, 194, 154, 0.9);
-  border: 2px solid rgba(40, 25, 12, 0.85);
-  box-shadow: 0 0 24px rgba(0,0,0,0.65);
-}
-
-#startBox h1,
-#passedBox h1 {
-  margin-top: 0;
-  letter-spacing: 0.12em;
-}
-
-.buttonRow {
-  display: flex;
-  justify-content: center;
-  gap: 0.8rem;
-  margin: 1rem 0;
-}
-
-#taskCard {
-  position: absolute;
-  right: 5.3vw;
-  bottom: 8.3vh;
-  width: 27vw;
-  min-width: 310px;
-  height: 18vh;
-  min-height: 135px;
-  padding: 1.2rem 1.35rem;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  color: #2b1a10;
-  font-size: clamp(0.9rem, 1.15vw, 1.18rem);
-  line-height: 1.35;
-  white-space: pre-wrap;
-  overflow: hidden;
-}
-
-#receivePanel {
-  display: none;
-  position: absolute;
-  right: 5.3vw;
-  bottom: 28vh;
-  width: 27vw;
-  min-width: 310px;
-  padding: 0.8rem;
-  background: rgba(216, 194, 154, 0.86);
-  border: 2px solid rgba(40, 25, 12, 0.75);
-  box-shadow: 0 0 16px rgba(0,0,0,0.45);
-}
-
-#receivePanel.active {
-  display: block;
-}
-
-#receiveInstruction {
-  margin-top: 0;
-  font-size: 0.9rem;
-}
-
-#receiveInput {
-  width: 100%;
-  padding: 0.6rem;
-  margin-bottom: 0.6rem;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 1rem;
-  border: 2px solid #2b1b10;
-  background: #f1dfb8;
-}
-
-#morseStrip {
-  position: absolute;
-  left: 31vw;
-  bottom: 3vh;
-  width: 38vw;
-  min-height: 42px;
-  padding: 0.5rem 0.8rem;
-  background: rgba(22, 13, 7, 0.75);
-  border: 1px solid rgba(231, 212, 165, 0.7);
-  color: #e7d4a5;
-  white-space: nowrap;
-  overflow-x: auto;
-  font-size: 1rem;
-  letter-spacing: 0.12em;
-}
-
-#currentSymbolBox {
-  position: absolute;
-  left: 3vw;
-  bottom: 3vh;
-  width: 230px;
-  padding: 0.75rem;
-  background: rgba(216, 194, 154, 0.82);
-  border: 2px solid rgba(40, 25, 12, 0.75);
-  box-shadow: 0 0 14px rgba(0,0,0,0.45);
-}
-
-#currentSymbol {
-  display: block;
-  margin-top: 0.3rem;
-  font-size: 2rem;
-  letter-spacing: 0.12em;
-}
-
-#feedback {
-  display: none;
-  position: absolute;
-  left: 3vw;
-  bottom: 15vh;
-  width: 260px;
-  padding: 0.75rem;
-  background: rgba(216, 194, 154, 0.88);
-  border: 2px solid rgba(40, 25, 12, 0.75);
-  box-shadow: 0 0 14px rgba(0,0,0,0.45);
-  font-weight: bold;
-}
-
-#feedback.active {
-  display: block;
-}
-
-#feedback.correct {
-  color: #143d1a;
-}
-
-#feedback.wrong {
-  color: #671313;
-}
-
-#passwordMorse {
-  margin-top: 1rem;
-  padding: 0.9rem;
-  background: rgba(22, 13, 7, 0.86);
-  color: #e7d4a5;
-  text-align: left;
-  white-space: pre-wrap;
-  letter-spacing: 0.1em;
-}
-
-.videoOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.78);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-}
-
-.videoPopup {
-  width: min(900px, 92vw);
-  background: #111;
-  border: 2px solid #d8c29a;
-  padding: 0.8rem;
-  box-shadow: 0 0 30px rgba(0,0,0,0.9);
-}
-
-.videoPopup video {
-  width: 100%;
-  max-height: 75vh;
-  display: block;
-  background: black;
-}
-
-#skipVideoBtn {
-  margin-top: 0.8rem;
-}
-
-@media (max-width: 900px) {
-  #taskCard,
-  #receivePanel {
-    left: 8vw;
-    right: auto;
-    width: 84vw;
+    return;
   }
 
-  #morseStrip {
-    left: 8vw;
-    width: 84vw;
+  if (!appScreen.classList.contains("active")) return;
+
+  const step = flow[stepIndex];
+  if (!step || step.type !== "send") return;
+  if (event.code !== morseKeyCode) return;
+  if (event.repeat) return;
+
+  event.preventDefault();
+  handlePressStart();
+}
+
+function handleKeyUp(event) {
+  if (!appScreen.classList.contains("active")) return;
+
+  const step = flow[stepIndex];
+  if (!step || step.type !== "send") return;
+  if (event.code !== morseKeyCode) return;
+
+  event.preventDefault();
+  handlePressEnd();
+}
+
+function startExam() {
+  ensureAudio();
+
+  startScreen.classList.remove("active");
+  passedScreen.classList.remove("active");
+  appScreen.classList.add("active");
+
+  stepIndex = 0;
+  loadStep();
+}
+
+function loadStep() {
+  clearAllTimers();
+  resetSendInput();
+  clearFeedback();
+
+  receivePanel.classList.remove("active");
+  receiveInput.value = "";
+  morseStrip.textContent = "";
+  currentReceiveMessage = "";
+
+  const step = flow[stepIndex];
+  if (!step) return;
+
+  if (step.type === "video") {
+    setBackground("video");
+    taskCard.textContent = "";
+    showVideoPopup(step.src, nextStep);
+    return;
   }
+
+  if (step.type === "send") {
+    setBackground("task");
+    const message = getLangValue(step.message);
+    taskCard.textContent = `${label("Sende diese Nachricht:", "Transmit this message:")}\n\n${message}`;
+    return;
+  }
+
+  if (step.type === "receive") {
+    setBackground("task");
+    currentReceiveMessage = getLangValue(step.message);
+
+    taskCard.textContent = label(
+      "Höre die Nachricht. Schreibe sie auf Papier mit. Tippe sie danach hier ein.",
+      "Listen to the message. Write it down on paper. Then type it here."
+    );
+
+    receiveInstruction.textContent = label(
+      "Empfangene Nachricht eintippen:",
+      "Type received message:"
+    );
+
+    receivePanel.classList.add("active");
+    receiveInput.value = "";
+    receiveInput.focus();
+
+    morseStrip.textContent = textToMorse(currentReceiveMessage);
+    playTextAsMorse(currentReceiveMessage);
+    return;
+  }
+
+  if (step.type === "password") {
+    finishExam();
+  }
+}
+
+function nextStep() {
+  stepIndex++;
+  loadStep();
+}
+
+function handlePressStart() {
+  if (isPressing) return;
+
+  clearTimeout(finalizeLetterTimer);
+  clearTimeout(finishAttemptTimer);
+
+  isPressing = true;
+  pressStartTime = performance.now();
+
+  startTone();
+}
+
+function handlePressEnd() {
+  if (!isPressing) return;
+
+  isPressing = false;
+  stopTone();
+
+  const duration = performance.now() - pressStartTime;
+  const symbol = duration < DOT_MAX ? "." : "-";
+
+  currentInputSymbols += symbol;
+  currentSymbol.textContent = currentInputSymbols;
+
+  clearTimeout(finalizeLetterTimer);
+  finalizeLetterTimer = setTimeout(finalizeCurrentLetter, LETTER_PAUSE);
+
+  clearTimeout(finishAttemptTimer);
+  finishAttemptTimer = setTimeout(finishSendAttempt, FINISH_PAUSE);
+}
+
+function finalizeCurrentLetter() {
+  if (!currentInputSymbols) return;
+
+  const decoded = REVERSE_MORSE[currentInputSymbols] || "?";
+  recognizedLetters.push(decoded);
+
+  currentInputSymbols = "";
+  currentSymbol.textContent = "–";
+}
+
+function finishSendAttempt() {
+  finalizeCurrentLetter();
+
+  const step = flow[stepIndex];
+  if (!step || step.type !== "send") return;
+
+  const userText = normalize(recognizedLetters.join(""));
+  const expectedText = normalize(getLangValue(step.message));
+
+  if (userText === expectedText) {
+    showFeedback(label("Richtig.", "Correct."), "correct");
+
+    setTimeout(nextStep, 700);
+  } else {
+    showFeedback(
+      label("Nicht verstanden. Aufgabe wird neu gestartet.", "Not understood. Task restarts."),
+      "wrong"
+    );
+
+    playTextAsMorse(ERROR_SIGNAL);
+
+    setTimeout(() => {
+      loadStep();
+    }, 1200);
+  }
+}
+
+function checkReceiveInput() {
+  const step = flow[stepIndex];
+  if (!step || step.type !== "receive") return;
+
+  const typed = normalize(receiveInput.value);
+  const expected = normalize(getLangValue(step.message));
+
+  if (typed === expected) {
+    showFeedback(label("Richtig.", "Correct."), "correct");
+    setTimeout(nextStep, 700);
+  } else {
+    showFeedback(
+      label("Nicht verstanden. Aufgabe wird neu gestartet.", "Not understood. Task restarts."),
+      "wrong"
+    );
+
+    playTextAsMorse(ERROR_SIGNAL);
+
+    setTimeout(() => {
+      loadStep();
+    }, 1200);
+  }
+}
+
+function repeatReceiveMessage() {
+  if (!currentReceiveMessage) return;
+  morseStrip.textContent = textToMorse(currentReceiveMessage);
+  playTextAsMorse(currentReceiveMessage);
+}
+
+function resetSendInput() {
+  recognizedLetters = [];
+  currentInputSymbols = "";
+  currentSymbol.textContent = "–";
+  isPressing = false;
+  stopTone();
+}
+
+function showFeedback(text, type) {
+  feedback.textContent = text;
+  feedback.className = `active ${type}`;
+}
+
+function clearFeedback() {
+  feedback.textContent = "";
+  feedback.className = "";
+}
+
+function showVideoPopup(src, callback) {
+  const overlay = document.createElement("div");
+  overlay.className = "videoOverlay";
+
+  overlay.innerHTML = `
+    <div class="videoPopup">
+      <video id="popupVideo" src="${src}" autoplay playsinline controls></video>
+      <button id="skipVideoBtn">Skip</button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const popupVideo = document.getElementById("popupVideo");
+  const skipBtn = document.getElementById("skipVideoBtn");
+
+  function closePopup() {
+    popupVideo.pause();
+    overlay.remove();
+    if (callback) callback();
+  }
+
+  popupVideo.onended = closePopup;
+  skipBtn.onclick = closePopup;
+
+  popupVideo.play().catch(() => {});
+}
+
+function finishExam() {
+  setBackground("start");
+
+  appScreen.classList.remove("active");
+  passedScreen.classList.add("active");
+
+  const password = "GUGLIELMO MARCONI";
+
+  passedText.textContent = label(
+    "Die Prüfung ist bestanden. Passwort 3 wird nun gemorst:",
+    "The exam is passed. Password 3 is now sent in Morse:"
+  );
+
+  passwordMorse.textContent = textToMorse(password);
+  playTextAsMorse(password);
+}
+
+function normalize(text) {
+  return String(text || "")
+    .toUpperCase()
+    .replace(/Ä/g, "AE")
+    .replace(/Ö/g, "OE")
+    .replace(/Ü/g, "UE")
+    .replace(/ß/g, "SS")
+    .replace(/[.,;:!?]/g, " ")
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+function normalizeForMorse(text) {
+  return String(text || "")
+    .toUpperCase()
+    .replace(/Ä/g, "AE")
+    .replace(/Ö/g, "OE")
+    .replace(/Ü/g, "UE")
+    .replace(/ß/g, "SS");
+}
+
+function textToMorse(text) {
+  return normalizeForMorse(text)
+    .split("")
+    .map((char) => {
+      if (char === " ") return "   ";
+      return MORSE_MAP[char] || "";
+    })
+    .join(" ");
+}
+
+function getLangValue(value) {
+  if (typeof value === "string") return value;
+  return value[lang];
+}
+
+function label(de, en) {
+  return lang === "de" ? de : en;
+}
+
+function getReadableKeyName(event) {
+  if (event.code === "Space") return lang === "de" ? "Leertaste" : "Space";
+  if (event.code.startsWith("Key")) return event.code.replace("Key", "");
+  if (event.code.startsWith("Digit")) return event.code.replace("Digit", "");
+  if (event.code.startsWith("Numpad")) return "Num " + event.code.replace("Numpad", "");
+  return event.key || event.code;
+}
+
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+}
+
+function startTone() {
+  ensureAudio();
+  stopTone();
+
+  oscillator = audioCtx.createOscillator();
+  gainNode = audioCtx.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.value = 650;
+  gainNode.gain.value = 0.18;
+
+  oscillator.connect(gainNode);
+  gainNode.connect(ctxDestination());
+  oscillator.start();
+}
+
+function ctxDestination() {
+  return audioCtx.destination;
+}
+
+function stopTone() {
+  if (oscillator) {
+    try {
+      oscillator.stop();
+    } catch (err) {}
+    oscillator.disconnect();
+    oscillator = null;
+  }
+
+  if (gainNode) {
+    gainNode.disconnect();
+    gainNode = null;
+  }
+}
+
+async function playTextAsMorse(text) {
+  ensureAudio();
+
+  const normalized = normalizeForMorse(text);
+
+  disableControls(true);
+
+  for (const char of normalized) {
+    if (char === " ") {
+      await wait(UNIT * 7);
+      continue;
+    }
+
+    const pattern = MORSE_MAP[char];
+    if (!pattern) continue;
+
+    await playMorsePattern(pattern);
+    await wait(UNIT * 3);
+  }
+
+  disableControls(false);
+}
+
+async function playMorsePattern(pattern) {
+  for (let i = 0; i < pattern.length; i++) {
+    const symbol = pattern[i];
+    const duration = symbol === "." ? UNIT : UNIT * 3;
+
+    startTone();
+    await wait(duration);
+    stopTone();
+
+    if (i < pattern.length - 1) {
+      await wait(UNIT);
+    }
+  }
+}
+
+function disableControls(disabled) {
+  checkReceiveBtn.disabled = disabled;
+  repeatReceiveBtn.disabled = disabled;
+}
+
+function clearAllTimers() {
+  clearTimeout(finalizeLetterTimer);
+  clearTimeout(finishAttemptTimer);
+  finalizeLetterTimer = null;
+  finishAttemptTimer = null;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
