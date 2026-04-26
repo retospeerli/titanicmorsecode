@@ -2,9 +2,9 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Titanic Funkprüfung</title>
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body class="bg-start">
 
@@ -16,11 +16,11 @@
 
       <p>Sprache / Language</p>
       <div class="row">
-        <button onclick="setLang('de')">Deutsch</button>
-        <button onclick="setLang('en')">English</button>
+        <button id="deBtn">Deutsch</button>
+        <button id="enBtn">English</button>
       </div>
 
-      <p>Morsetaste wählen</p>
+      <p id="keyTitle">Morsetaste wählen</p>
       <button id="keyBtn">Taste wählen</button>
       <p id="keyInfo">Morsetaste: Leertaste</p>
 
@@ -29,12 +29,11 @@
   </section>
 
   <section id="appScreen" class="screen">
-
     <div id="taskCard"></div>
 
     <div id="receiveBox">
       <p id="receiveText"></p>
-      <input id="receiveInput" autocomplete="off" spellcheck="false"/>
+      <input id="receiveInput" autocomplete="off" spellcheck="false" />
       <button id="checkBtn">OK</button>
       <button id="repeatBtn">↺</button>
     </div>
@@ -47,7 +46,6 @@
     </div>
 
     <div id="feedback"></div>
-
   </section>
 
   <section id="endScreen" class="screen">
