@@ -11,7 +11,7 @@ const UNIT = 100;
 const DOT = UNIT * 2;
 const LETTER = UNIT * 3;
 const FINISH = 3000;
-const MAX_ERRORS = 1;
+const MAX_ERRORS = 3;
 
 const MORSE = {
   A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".",
