@@ -9,71 +9,52 @@
 <body>
   <main id="app">
 
-    <section id="languageScreen" class="screen active">
-      <div class="paper centerPaper">
+    <section id="startScreen" class="screen active">
+      <div class="startBox">
         <h1>R.M.S. TITANIC</h1>
-        <p>Wähle die Sprache der Auftragskarten.</p>
+        <p>Sprache der Auftragskarten wählen:</p>
+
         <div class="buttonRow">
-          <button onclick="startApp('de')">Deutsch</button>
-          <button onclick="startApp('en')">English</button>
+          <button onclick="selectLang('de')">Deutsch</button>
+          <button onclick="selectLang('en')">English</button>
         </div>
+
+        <p class="small">Morsetaste festlegen:</p>
+        <button id="keyButton">Taste wählen</button>
+        <p id="keyInfo">Noch keine Taste gewählt.</p>
+
+        <button id="startButton" disabled>Prüfung starten</button>
       </div>
     </section>
 
     <section id="gameScreen" class="screen">
-      <div class="layout">
+      <video id="videoPlayer" playsinline controls></video>
 
-        <aside class="paper taskCard">
-          <div class="smallTitle" id="taskLabel">AUFTRAG</div>
-          <div id="taskText"></div>
-        </aside>
+      <div id="taskCard"></div>
 
-        <section class="radioArea">
-          <video id="videoPlayer" class="videoBox" playsinline controls></video>
+      <div id="incomingStrip"></div>
 
-          <div class="morseStrip">
-            <div id="incomingMorse"></div>
-          </div>
-
-          <div class="inputPanel paper">
-            <div class="smallTitle" id="inputLabel">MORSE-EINGABE</div>
-            <p id="instruction"></p>
-
-            <textarea id="morseInput" autocomplete="off" spellcheck="false"></textarea>
-
-            <div class="buttonRow">
-              <button id="checkButton">Funkspruch senden</button>
-              <button id="repeatButton">Antwort nochmals hören</button>
-            </div>
-
-            <div id="feedback"></div>
-          </div>
-        </section>
-
-        <aside class="paper infoCard">
-          <div class="smallTitle">RUFZEICHEN</div>
-          <p><b>MGY</b> = R.M.S. Titanic</p>
-          <p><b>DDK</b> = R.M.S. Carpathia</p>
-          <p><b>MPA</b> = R.M.S. Baltic</p>
-
-          <div class="smallTitle">Q-CODES</div>
-          <p><b>CQ</b> = an alle</p>
-          <p><b>D</b> = distress / Notfall</p>
-          <p><b>DE</b> = this is / hier ist</p>
-          <p><b>?</b> = nicht verstanden</p>
-          <p><b>.-.-.-</b> = Punkt</p>
-        </aside>
-
+      <div id="currentSymbolBox">
+        <div>Aktuelles Zeichen:</div>
+        <strong id="currentSymbol">–</strong>
       </div>
+
+      <div id="hiddenInputInfo">
+        Morse mit der gewählten Taste eingeben.  
+        Lange Pause = nächster Buchstabe.
+      </div>
+
+      <button id="checkButton">Funkspruch senden</button>
+      <button id="repeatButton">Antwort nochmals hören</button>
+
+      <div id="feedback"></div>
     </section>
 
     <section id="passedScreen" class="screen">
-      <div class="paper centerPaper">
+      <div class="startBox">
         <h1>PRÜFUNG BESTANDEN</h1>
         <p id="passedText"></p>
-        <div class="morseStrip final">
-          <div id="passwordMorse"></div>
-        </div>
+        <div id="passwordMorse"></div>
       </div>
     </section>
 
