@@ -10,48 +10,47 @@
   <main id="app">
 
     <section id="startScreen" class="screen active">
-      <div class="startBox">
+      <div id="startBox">
         <h1>R.M.S. TITANIC</h1>
-        <p>Sprache der Auftragskarten wählen:</p>
 
+        <p>Sprache / Language</p>
         <div class="buttonRow">
-          <button onclick="selectLang('de')">Deutsch</button>
-          <button onclick="selectLang('en')">English</button>
+          <button id="langDeBtn">Deutsch</button>
+          <button id="langEnBtn">English</button>
         </div>
 
-        <p class="small">Morsetaste festlegen:</p>
-        <button id="keyButton">Taste wählen</button>
-        <p id="keyInfo">Noch keine Taste gewählt.</p>
+        <p>Morsetaste wählen</p>
+        <button id="chooseKeyBtn">Taste wählen</button>
+        <p id="keyInfo">Morsetaste: Leertaste</p>
 
-        <button id="startButton" disabled>Prüfung starten</button>
+        <button id="startBtn">Prüfung starten</button>
       </div>
     </section>
 
-    <section id="gameScreen" class="screen">
-      <video id="videoPlayer" playsinline controls></video>
+    <section id="appScreen" class="screen">
 
       <div id="taskCard"></div>
 
-      <div id="incomingStrip"></div>
+      <div id="receivePanel">
+        <p id="receiveInstruction"></p>
+        <input id="receiveInput" type="text" autocomplete="off" spellcheck="false" />
+        <button id="checkReceiveBtn">Prüfen</button>
+        <button id="repeatReceiveBtn">Nochmals hören</button>
+      </div>
+
+      <div id="morseStrip"></div>
 
       <div id="currentSymbolBox">
-        <div>Aktuelles Zeichen:</div>
+        <div id="currentSymbolLabel">Aktuelles Zeichen</div>
         <strong id="currentSymbol">–</strong>
       </div>
 
-      <div id="hiddenInputInfo">
-        Morse mit der gewählten Taste eingeben.  
-        Lange Pause = nächster Buchstabe.
-      </div>
-
-      <button id="checkButton">Funkspruch senden</button>
-      <button id="repeatButton">Antwort nochmals hören</button>
-
       <div id="feedback"></div>
+
     </section>
 
     <section id="passedScreen" class="screen">
-      <div class="startBox">
+      <div id="passedBox">
         <h1>PRÜFUNG BESTANDEN</h1>
         <p id="passedText"></p>
         <div id="passwordMorse"></div>
