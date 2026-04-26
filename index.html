@@ -2,15 +2,14 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Titanic Funkprüfung</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body class="bg-start">
 
 <main id="app">
 
-  <!-- START -->
   <section id="startScreen" class="screen active">
     <div id="startBox">
       <h1>R.M.S. TITANIC</h1>
@@ -29,14 +28,13 @@
     </div>
   </section>
 
-  <!-- APP -->
   <section id="appScreen" class="screen">
 
     <div id="taskCard"></div>
 
     <div id="receiveBox">
       <p id="receiveText"></p>
-      <input id="receiveInput" />
+      <input id="receiveInput" autocomplete="off" spellcheck="false"/>
       <button id="checkBtn">OK</button>
       <button id="repeatBtn">↺</button>
     </div>
@@ -52,11 +50,10 @@
 
   </section>
 
-  <!-- ENDE -->
   <section id="endScreen" class="screen">
-    <div id="startBox">
+    <div id="endBox">
       <h1>BESTANDEN</h1>
-      <p id="endText"></p>
+      <p id="endText">Passwort 3 wird gemorst:</p>
       <div id="password"></div>
     </div>
   </section>
