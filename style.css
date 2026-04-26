@@ -31,18 +31,20 @@ body {
   display: block;
 }
 
-#startBox,
-#endBox {
+#startBox {
   position: fixed;
   top: 50%;
-  left: 80%;
-  width: min(520px, 90vw);
+  left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(216, 194, 154, 0.9);
+
+  width: min(520px, 90vw);
   padding: 1.5rem;
-  border: 2px solid #2b1b10;
+
+  background: transparent;
+  border: none;
+  box-shadow: none;
+
   text-align: center;
-  box-shadow: 0 0 25px rgba(0,0,0,0.65);
 }
 
 button {
