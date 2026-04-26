@@ -37,7 +37,6 @@ const FLOW = [
   {type:"end"}
 ];
 
-/* UI */
 const startScreen = document.getElementById("startScreen");
 const appScreen = document.getElementById("appScreen");
 const endScreen = document.getElementById("endScreen");
@@ -45,13 +44,21 @@ const endScreen = document.getElementById("endScreen");
 const taskCard = document.getElementById("taskCard");
 const receiveBox = document.getElementById("receiveBox");
 const receiveInput = document.getElementById("receiveInput");
-const receiveText = document.getElementById("receiveText");
 
 const strip = document.getElementById("morseStrip");
 const symbol = document.getElementById("symbol");
 const feedback = document.getElementById("feedback");
 
-/* START */
+let ctx = null;
+
+function ensureAudio(){
+  if(!ctx){
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function setLang(l){ lang = l; }
+
 document.getElementById("startBtn").onclick = ()=>{
   startScreen.classList.remove("active");
   appScreen.classList.add("active");
@@ -60,7 +67,6 @@ document.getElementById("startBtn").onclick = ()=>{
 
 document.getElementById("keyBtn").onclick=()=>{
   waitingKey=true;
-  document.getElementById("keyInfo").textContent="Taste drücken...";
 };
 
 document.addEventListener("keydown",(e)=>{
@@ -77,51 +83,44 @@ document.addEventListener("keyup",(e)=>{
   if(e.code===key) pressEnd();
 });
 
-/* MORSE INPUT */
 let down=false,t0=0,timer;
 
 function pressStart(){
   if(down) return;
   down=true;
   t0=Date.now();
+  tone();
 }
 
 function pressEnd(){
   if(!down) return;
   down=false;
+  stop();
   let d=Date.now()-t0;
   currentSymbol+=d<DOT?".":"-";
   symbol.textContent=currentSymbol;
 
   clearTimeout(timer);
-  timer=setTimeout(finishLetter,LETTER);
+  timer=setTimeout(()=>{
+    input+=REV[currentSymbol]||"?";
+    currentSymbol="";
+    symbol.textContent="–";
+  },LETTER);
 
   clearTimeout(window.finish);
   window.finish=setTimeout(checkSend,FINISH);
 }
 
-function finishLetter(){
-  input+=REV[currentSymbol]||"?";
-  currentSymbol="";
-  symbol.textContent="–";
-}
-
-/* FLOW */
 function next(){
   input="";
   currentSymbol="";
   symbol.textContent="–";
   feedback.className="";
-  feedback.textContent="";
   receiveBox.classList.remove("active");
 
   let s=FLOW[step];
 
-  if(s.type==="video"){
-    setBG("video");
-    popup(s.src);
-    return;
-  }
+  if(s.type==="video"){ popup(s.src); return; }
 
   if(s.type==="send"){
     setBG("task");
@@ -138,27 +137,17 @@ function next(){
     strip.textContent=toMorse(s.msg);
   }
 
-  if(s.type==="end"){
-    finish();
-  }
+  if(s.type==="end"){ finish(); }
 }
 
-/* CHECK */
 function checkSend(){
-  if(norm(input)===norm(FLOW[step].msg)){
-    ok();
-  } else {
-    fail();
-  }
+  if(norm(input)===norm(FLOW[step].msg)) ok();
+  else fail();
 }
 
 document.getElementById("checkBtn").onclick=()=>{
-  let val=receiveInput.value;
-  if(norm(val)===norm(FLOW[step].msg)){
-    ok();
-  } else {
-    fail();
-  }
+  if(norm(receiveInput.value)===norm(FLOW[step].msg)) ok();
+  else fail();
 };
 
 function ok(){
@@ -171,20 +160,18 @@ function fail(){
   feedback.textContent="??";
   feedback.className="show";
   play("?");
-  setTimeout(next,1200);
+  setTimeout(next,1000);
 }
 
-/* END */
 function finish(){
+  setBG("start");
   appScreen.classList.remove("active");
   endScreen.classList.add("active");
-  setBG("start");
   let p="GUGLIELMO MARCONI";
   document.getElementById("password").textContent=toMorse(p);
   play(p);
 }
 
-/* HELPERS */
 function norm(t){return t.toUpperCase().replace(/\s/g,"");}
 
 function setBG(x){
@@ -193,6 +180,7 @@ function setBG(x){
 }
 
 function popup(src){
+  setBG("video");
   let d=document.createElement("div");
   d.className="videoOverlay";
   d.innerHTML=`<video src="${src}" autoplay></video><button>Skip</button>`;
@@ -201,25 +189,8 @@ function popup(src){
   d.querySelector("video").onended=()=>{d.remove();step++;next();};
 }
 
-/* AUDIO */
-let ctx=new AudioContext();
-
-async function play(txt){
-  for(let c of txt){
-    if(c===" "){await sleep(UNIT*7);continue;}
-    let m=MORSE[c];
-    if(!m) continue;
-    for(let s of m){
-      tone(s==="."?UNIT:UNIT*3);
-      await sleep(s==="."?UNIT:UNIT*3);
-      stop();
-      await sleep(UNIT);
-    }
-    await sleep(UNIT*2);
-  }
-}
-
 function tone(){
+  ensureAudio();
   let o=ctx.createOscillator();
   let g=ctx.createGain();
   o.frequency.value=650;
@@ -231,6 +202,22 @@ function tone(){
 
 function stop(){
   if(window.osc){window.osc.stop();window.osc=null;}
+}
+
+async function play(txt){
+  ensureAudio();
+  for(let c of txt){
+    if(c===" "){await sleep(UNIT*7);continue;}
+    let m=MORSE[c];
+    if(!m) continue;
+    for(let s of m){
+      tone();
+      await sleep(s==="."?UNIT:UNIT*3);
+      stop();
+      await sleep(UNIT);
+    }
+    await sleep(UNIT*2);
+  }
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
