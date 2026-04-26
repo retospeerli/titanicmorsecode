@@ -10,7 +10,6 @@ html, body {
   color: #24180f;
 }
 
-/* Hintergrundbilder vollständig in der Höhe sichtbar */
 body {
   background-size: contain;
   background-position: center center;
