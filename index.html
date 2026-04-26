@@ -7,58 +7,62 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="bg-start">
-  <main id="app">
 
-    <section id="startScreen" class="screen active">
-      <div id="startBox">
-        <h1>R.M.S. TITANIC</h1>
+<main id="app">
 
-        <p>Sprache / Language</p>
-        <div class="buttonRow">
-          <button id="langDeBtn">Deutsch</button>
-          <button id="langEnBtn">English</button>
-        </div>
+  <!-- START -->
+  <section id="startScreen" class="screen active">
+    <div id="startBox">
+      <h1>R.M.S. TITANIC</h1>
 
-        <p>Morsetaste wählen</p>
-        <button id="chooseKeyBtn">Taste wählen</button>
-        <p id="keyInfo">Morsetaste: Leertaste</p>
-
-        <button id="startBtn">Prüfung starten</button>
-      </div>
-    </section>
-
-    <section id="appScreen" class="screen">
-
-      <div id="taskCard"></div>
-
-      <div id="receivePanel">
-        <p id="receiveInstruction"></p>
-        <input id="receiveInput" type="text" autocomplete="off" spellcheck="false" />
-        <button id="checkReceiveBtn">Prüfen</button>
-        <button id="repeatReceiveBtn">Nochmals hören</button>
+      <p>Sprache / Language</p>
+      <div class="row">
+        <button onclick="setLang('de')">Deutsch</button>
+        <button onclick="setLang('en')">English</button>
       </div>
 
-      <div id="morseStrip"></div>
+      <p>Morsetaste wählen</p>
+      <button id="keyBtn">Taste wählen</button>
+      <p id="keyInfo">Morsetaste: Leertaste</p>
 
-      <div id="currentSymbolBox">
-        <div id="currentSymbolLabel">Aktuelles Zeichen</div>
-        <strong id="currentSymbol">–</strong>
-      </div>
+      <button id="startBtn">Start</button>
+    </div>
+  </section>
 
-      <div id="feedback"></div>
+  <!-- APP -->
+  <section id="appScreen" class="screen">
 
-    </section>
+    <div id="taskCard"></div>
 
-    <section id="passedScreen" class="screen">
-      <div id="passedBox">
-        <h1>PRÜFUNG BESTANDEN</h1>
-        <p id="passedText"></p>
-        <div id="passwordMorse"></div>
-      </div>
-    </section>
+    <div id="receiveBox">
+      <p id="receiveText"></p>
+      <input id="receiveInput" />
+      <button id="checkBtn">OK</button>
+      <button id="repeatBtn">↺</button>
+    </div>
 
-  </main>
+    <div id="morseStrip"></div>
 
-  <script src="app.js"></script>
+    <div id="symbolBox">
+      <div id="symbolLabel">Zeichen</div>
+      <strong id="symbol">–</strong>
+    </div>
+
+    <div id="feedback"></div>
+
+  </section>
+
+  <!-- ENDE -->
+  <section id="endScreen" class="screen">
+    <div id="startBox">
+      <h1>BESTANDEN</h1>
+      <p id="endText"></p>
+      <div id="password"></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
 </body>
 </html>
