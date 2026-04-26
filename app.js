@@ -296,7 +296,7 @@ function checkSend() {
   const expected = getMsg(current.msg);
   const mistakes = levenshtein(norm(input), norm(expected));
 
-  if (mistakes <= MAX_ERRORS) ok();
+  if (mistakes <= MAX_ERRORS) ok(mistakes);
   else fail();
 }
 
@@ -307,18 +307,20 @@ function checkReceive() {
   const expected = getMsg(current.msg);
   const mistakes = levenshtein(norm(receiveInput.value), norm(expected));
 
-  if (mistakes <= MAX_ERRORS) ok();
+  if (mistakes <= MAX_ERRORS) ok(mistakes);
   else fail();
 }
 
-function ok() {
-  feedback.textContent = lang === "de" ? "OK" : "OK";
+function ok(mistakes = 0) {
+  const qrk = getQRKScore(mistakes);
+
+  feedback.textContent = `QRK ${qrk}`;
   feedback.className = "show";
 
   setTimeout(() => {
     step++;
     next();
-  }, 600);
+  }, 2200);
 }
 
 function fail() {
@@ -330,6 +332,14 @@ function fail() {
   setTimeout(() => {
     next();
   }, 1300);
+}
+
+function getQRKScore(mistakes) {
+  if (mistakes === 0) return 5;
+  if (mistakes === 1) return 4;
+  if (mistakes === 2) return 3;
+  if (mistakes === 3) return 2;
+  return 1;
 }
 
 function finish() {
