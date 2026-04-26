@@ -5,13 +5,16 @@
 html, body {
   margin: 0;
   min-height: 100%;
-  font-family: Courier New, monospace;
+  font-family: "Courier New", monospace;
+  background-color: #000;
+  color: #24180f;
 }
 
-/* BACKGROUNDS */
+/* Hintergrundbilder vollständig in der Höhe sichtbar */
 body {
-  background-size: cover;
-  background-position: center;
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
   background-attachment: fixed;
 }
 
@@ -19,7 +22,6 @@ body {
 .bg-video { background-image: url("titanicfunkraum.png"); }
 .bg-task  { background-image: url("titanicfunkraum2.jpg"); }
 
-/* SCREENS */
 .screen {
   display: none;
   height: 100vh;
@@ -30,29 +32,39 @@ body {
   display: block;
 }
 
-/* CENTER BOX */
-#startBox {
+#startBox,
+#endBox {
   position: fixed;
   top: 50%;
   left: 50%;
+  width: min(520px, 90vw);
   transform: translate(-50%, -50%);
-  background: rgba(216,194,154,0.9);
+  background: rgba(216, 194, 154, 0.9);
   padding: 1.5rem;
   border: 2px solid #2b1b10;
   text-align: center;
+  box-shadow: 0 0 25px rgba(0,0,0,0.65);
 }
 
-/* BUTTON */
 button {
   margin: 5px;
   padding: 8px 12px;
   font-family: inherit;
   border: 2px solid #2b1b10;
   background: #d8c29a;
+  color: #1d130c;
   cursor: pointer;
 }
 
-/* TASK CARD */
+button:hover {
+  background: #ead7ad;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 #taskCard {
   position: absolute;
   right: 5vw;
@@ -62,10 +74,13 @@ button {
   height: 16vh;
   padding: 1rem;
   background: transparent;
+  color: #2b1a10;
   white-space: pre-wrap;
+  overflow: hidden;
+  font-size: clamp(0.9rem, 1.1vw, 1.15rem);
+  line-height: 1.35;
 }
 
-/* RECEIVE */
 #receiveBox {
   display: none;
   position: absolute;
@@ -75,67 +90,97 @@ button {
   min-width: 280px;
   background: rgba(216,194,154,0.85);
   padding: 10px;
+  border: 2px solid #2b1b10;
 }
 
 #receiveBox.active {
   display: block;
 }
 
-/* MORSE STRIP */
-#morseStrip {
-  position: absolute;
-  left: 30vw;
-  bottom: 3vh;
-  width: 40vw;
-  background: rgba(0,0,0,0.7);
-  color: #e7d4a5;
-  padding: 6px;
-  overflow-x: auto;
+#receiveInput {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-family: inherit;
+  font-size: 1rem;
+  background: #f1dfb8;
+  border: 2px solid #2b1b10;
 }
 
-/* SYMBOL */
+#morseStrip {
+  position: absolute;
+  left: 3vw;
+  right: 3vw;
+  bottom: 2vh;
+  height: 38px;
+  background: rgba(0,0,0,0.72);
+  color: #e7d4a5;
+  padding: 8px 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+  letter-spacing: 0.14em;
+  font-size: 1rem;
+  border: 1px solid rgba(231, 212, 165, 0.6);
+}
+
 #symbolBox {
   position: absolute;
   left: 3vw;
-  bottom: 3vh;
+  bottom: 8vh;
   background: rgba(216,194,154,0.85);
   padding: 10px;
+  border: 2px solid #2b1b10;
 }
 
 #symbol {
+  display: block;
   font-size: 2rem;
+  letter-spacing: 0.14em;
 }
 
-/* FEEDBACK */
 #feedback {
   position: absolute;
   left: 3vw;
-  bottom: 15vh;
+  bottom: 20vh;
   background: rgba(216,194,154,0.9);
   padding: 10px;
+  border: 2px solid #2b1b10;
   display: none;
+  font-weight: bold;
 }
 
 #feedback.show {
   display: block;
 }
 
-/* VIDEO POPUP */
 .videoOverlay {
   position: fixed;
   inset: 0;
-  background: black;
+  background: rgba(0,0,0,0.95);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 99;
 }
 
 .videoOverlay video {
-  width: 80vw;
+  width: min(90vw, 1000px);
+  max-height: 82vh;
+  background: #000;
 }
 
 .videoOverlay button {
   position: absolute;
   top: 20px;
   right: 20px;
+}
+
+#password {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  background: rgba(0,0,0,0.75);
+  color: #e7d4a5;
+  text-align: left;
+  white-space: pre-wrap;
+  letter-spacing: 0.12em;
 }
