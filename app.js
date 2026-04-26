@@ -1,6 +1,18 @@
 let lang = "de";
+let chosenKey = null;
+let waitingForKey = false;
+
 let stepIndex = 0;
 let lastIncoming = "";
+
+let isKeyDown = false;
+let keyDownTime = 0;
+let currentMorseChar = "";
+let typedMorseChars = [];
+let charTimer = null;
+
+const dotLimit = 220;
+const letterPause = 900;
 
 const morseMap = {
   A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".", F: "..-.",
@@ -10,25 +22,29 @@ const morseMap = {
   Y: "-.--", Z: "--..",
   0: "-----", 1: ".----", 2: "..---", 3: "...--", 4: "....-",
   5: ".....", 6: "-....", 7: "--...", 8: "---..", 9: "----.",
-  ".": ".-.-.-"
+  ".": ".-.-.-",
+  "?": "..--.."
 };
+
+const reverseMorseMap = {};
+Object.keys(morseMap).forEach(k => reverseMorseMap[morseMap[k]] = k);
 
 const texts = {
   de: {
-    task: "AUFTRAG",
-    input: "MORSE-EINGABE",
-    write: "Der vorgesetzte Funker befiehlt: Schreibe die Antwort auf Papier mit. Du siehst nur die Morsezeichen.",
-    send: "Gib den Funkspruch in das unsichtbare Morse-Feld ein und sende ihn.",
+    keyUnset: "Noch keine Taste gewählt.",
+    keySet: "Morsetaste:",
+    chooseKey: "Drücke jetzt deine gewünschte Morsetaste.",
+    start: "Prüfung starten",
     correct: "Richtig. Nachricht gesendet.",
     wrong: "Noch nicht korrekt. Prüfe deinen Funkspruch.",
     repeat: "Antwort nochmals hören",
     passed: "Die Prüfung ist bestanden. Das Passwort 3 wird nun gemorst:"
   },
   en: {
-    task: "ORDER",
-    input: "MORSE INPUT",
-    write: "The senior radio operator orders: Write the answer down on paper. You only see the Morse code.",
-    send: "Enter the radio message into the hidden Morse field and send it.",
+    keyUnset: "No key selected yet.",
+    keySet: "Morse key:",
+    chooseKey: "Press your chosen Morse key now.",
+    start: "Start exam",
     correct: "Correct. Message sent.",
     wrong: "Not correct yet. Check your radio message.",
     repeat: "Hear answer again",
@@ -44,16 +60,16 @@ const steps = [
       en: "Send the distress call.\n\nCQD CQD CQD DE MGY MGY MGY"
     },
     expected: "CQD CQD CQD DE MGY MGY MGY",
-    incoming: "DDK DE MGY COME AT ONCE WE HAVE STRUCK ICEBERG"
+    incoming: "MCP DE MGY COME AT ONCE WE HAVE STRUCK ICEBERG"
   },
   {
     task: {
-      de: "DDK DE MGY\n\nSOFORT KOMMEN HABEN EISBERG GERAMMT",
-      en: "DDK DE MGY\n\nCOME AT ONCE WE HAVE STRUCK ICEBERG"
+      de: "MCP DE MGY\n\nSOFORT KOMMEN HABEN EISBERG GERAMMT",
+      en: "MCP DE MGY\n\nCOME AT ONCE WE HAVE STRUCK ICEBERG"
     },
     expected: {
-      de: "DDK DE MGY SOFORT KOMMEN HABEN EISBERG GERAMMT",
-      en: "DDK DE MGY COME AT ONCE WE HAVE STRUCK ICEBERG"
+      de: "MCP DE MGY SOFORT KOMMEN HABEN EISBERG GERAMMT",
+      en: "MCP DE MGY COME AT ONCE WE HAVE STRUCK ICEBERG"
     },
     incoming: {
       de: "MGY DE MPA WAS IST IHRE POSITION",
@@ -70,8 +86,8 @@ const steps = [
       en: "MGY DE MPA WHAT IS YOUR POSITION"
     },
     incoming: {
-      de: "MGY DE DDK VERSTANDEN KOMMEN MIT VOLLER GESCHWINDIGKEIT",
-      en: "MGY DE DDK RECEIVED COMING AT FULL SPEED"
+      de: "MGY DE MCP VERSTANDEN KOMMEN MIT VOLLER GESCHWINDIGKEIT",
+      en: "MGY DE MCP RECEIVED COMING AT FULL SPEED"
     }
   },
   {
@@ -90,12 +106,12 @@ const steps = [
   },
   {
     task: {
-      de: "MGY DE DDK\n\nVERSTANDEN KOMMEN MIT VOLLER GESCHWINDIGKEIT",
-      en: "MGY DE DDK\n\nRECEIVED COMING AT FULL SPEED"
+      de: "MGY DE MCP\n\nVERSTANDEN KOMMEN MIT VOLLER GESCHWINDIGKEIT",
+      en: "MGY DE MCP\n\nRECEIVED COMING AT FULL SPEED"
     },
     expected: {
-      de: "MGY DE DDK VERSTANDEN KOMMEN MIT VOLLER GESCHWINDIGKEIT",
-      en: "MGY DE DDK RECEIVED COMING AT FULL SPEED"
+      de: "MGY DE MCP VERSTANDEN KOMMEN MIT VOLLER GESCHWINDIGKEIT",
+      en: "MGY DE MCP RECEIVED COMING AT FULL SPEED"
     },
     incoming: {
       de: "MGY DE MPA SIND UNTERWEGS",
@@ -124,29 +140,87 @@ const steps = [
   }
 ];
 
-function startApp(selectedLang) {
-  lang = selectedLang;
-  document.getElementById("languageScreen").classList.remove("active");
-  document.getElementById("gameScreen").classList.add("active");
-
-  document.getElementById("taskLabel").textContent = texts[lang].task;
-  document.getElementById("inputLabel").textContent = texts[lang].input;
+function selectLang(selected) {
+  lang = selected;
+  document.getElementById("keyButton").textContent =
+    lang === "de" ? "Taste wählen" : "Choose key";
+  document.getElementById("keyInfo").textContent = chosenKey
+    ? `${texts[lang].keySet} ${chosenKey}`
+    : texts[lang].keyUnset;
+  document.getElementById("startButton").textContent = texts[lang].start;
   document.getElementById("repeatButton").textContent = texts[lang].repeat;
+}
 
+document.getElementById("keyButton").addEventListener("click", () => {
+  waitingForKey = true;
+  document.getElementById("keyInfo").textContent = texts[lang].chooseKey;
+});
+
+document.addEventListener("keydown", (event) => {
+  if (waitingForKey) {
+    event.preventDefault();
+    chosenKey = event.code;
+    waitingForKey = false;
+    document.getElementById("keyInfo").textContent = `${texts[lang].keySet} ${event.key}`;
+    document.getElementById("startButton").disabled = false;
+    return;
+  }
+
+  if (!document.getElementById("gameScreen").classList.contains("active")) return;
+  if (event.code !== chosenKey) return;
+  if (isKeyDown) return;
+
+  event.preventDefault();
+  isKeyDown = true;
+  keyDownTime = Date.now();
+});
+
+document.addEventListener("keyup", (event) => {
+  if (!document.getElementById("gameScreen").classList.contains("active")) return;
+  if (event.code !== chosenKey) return;
+
+  event.preventDefault();
+  isKeyDown = false;
+
+  const duration = Date.now() - keyDownTime;
+  const symbol = duration < dotLimit ? "." : "-";
+
+  currentMorseChar += symbol;
+  document.getElementById("currentSymbol").textContent = currentMorseChar;
+
+  clearTimeout(charTimer);
+  charTimer = setTimeout(commitCurrentChar, letterPause);
+});
+
+document.getElementById("startButton").addEventListener("click", () => {
+  document.getElementById("startScreen").classList.remove("active");
+  document.getElementById("gameScreen").classList.add("active");
   stepIndex = 0;
   loadStep();
+});
+
+document.getElementById("checkButton").addEventListener("click", checkInput);
+document.getElementById("repeatButton").addEventListener("click", repeatIncoming);
+
+function commitCurrentChar() {
+  if (!currentMorseChar) return;
+
+  const letter = reverseMorseMap[currentMorseChar] || "?";
+  typedMorseChars.push(letter);
+
+  currentMorseChar = "";
+  document.getElementById("currentSymbol").textContent = "–";
 }
 
 function loadStep() {
   const step = steps[stepIndex];
 
-  document.getElementById("feedback").textContent = "";
-  document.getElementById("feedback").className = "";
-  document.getElementById("morseInput").value = "";
-  document.getElementById("instruction").textContent = texts[lang].send;
+  typedMorseChars = [];
+  currentMorseChar = "";
+  document.getElementById("currentSymbol").textContent = "–";
+  hideFeedback();
 
-  const task = getLangValue(step.task);
-  document.getElementById("taskText").textContent = task;
+  document.getElementById("taskCard").textContent = getLangValue(step.task);
 
   if (step.video) {
     playVideo(step.video);
@@ -157,18 +231,19 @@ function loadStep() {
     playIncoming(lastIncoming);
   } else {
     lastIncoming = "";
-    document.getElementById("incomingMorse").textContent = "";
+    document.getElementById("incomingStrip").textContent = "";
   }
 }
 
 function checkInput() {
+  commitCurrentChar();
+
   const step = steps[stepIndex];
-  const user = normalize(document.getElementById("morseInput").value);
+  const user = normalize(typedMorseChars.join(""));
   const expected = normalize(getLangValue(step.expected));
 
   if (user === expected) {
-    document.getElementById("feedback").textContent = texts[lang].correct;
-    document.getElementById("feedback").className = "correct";
+    showFeedback(texts[lang].correct, "correct");
 
     setTimeout(() => {
       if (step.finalVideo) {
@@ -180,9 +255,20 @@ function checkInput() {
     }, 900);
 
   } else {
-    document.getElementById("feedback").textContent = texts[lang].wrong;
-    document.getElementById("feedback").className = "wrong";
+    showFeedback(texts[lang].wrong, "wrong");
   }
+}
+
+function showFeedback(text, type) {
+  const box = document.getElementById("feedback");
+  box.textContent = text;
+  box.className = `show ${type}`;
+}
+
+function hideFeedback() {
+  const box = document.getElementById("feedback");
+  box.textContent = "";
+  box.className = "";
 }
 
 function finishExam() {
@@ -197,25 +283,21 @@ function finishExam() {
   playMorse(password);
 }
 
-function playVideo(src, callback) {
-  const video = document.getElementById("videoPlayer");
-  video.src = src;
-  video.style.display = "block";
-  video.onended = callback || null;
-  video.play().catch(() => {});
+function repeatIncoming() {
+  if (lastIncoming) playIncoming(lastIncoming);
 }
 
 function playIncoming(message) {
-  document.getElementById("instruction").textContent = texts[lang].write;
   const morse = textToMorse(message);
-  document.getElementById("incomingMorse").textContent = morse;
+  document.getElementById("incomingStrip").textContent = morse;
   playMorse(message);
 }
 
-function repeatIncoming() {
-  if (lastIncoming) {
-    playIncoming(lastIncoming);
-  }
+function playVideo(src, callback) {
+  const video = document.getElementById("videoPlayer");
+  video.src = src;
+  video.onended = callback || null;
+  video.play().catch(() => {});
 }
 
 function getLangValue(value) {
@@ -231,18 +313,27 @@ function normalize(text) {
     .replace(/Ü/g, "UE")
     .replace(/ß/g, "SS")
     .replace(/[.,;:!?]/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, "")
     .trim();
 }
 
 function textToMorse(text) {
-  return normalize(text)
+  return normalizeForMorse(text)
     .split("")
     .map(char => {
       if (char === " ") return "   ";
       return morseMap[char] || "";
     })
     .join(" ");
+}
+
+function normalizeForMorse(text) {
+  return text
+    .toUpperCase()
+    .replace(/Ä/g, "AE")
+    .replace(/Ö/g, "OE")
+    .replace(/Ü/g, "UE")
+    .replace(/ß/g, "SS");
 }
 
 function playMorse(text) {
@@ -252,7 +343,7 @@ function playMorse(text) {
   const unit = 0.08;
   const freq = 650;
 
-  const normalized = normalize(text);
+  const normalized = normalizeForMorse(text);
 
   for (const char of normalized) {
     if (char === " ") {
@@ -290,12 +381,3 @@ function tone(ctx, start, duration, freq) {
   osc.start(start);
   osc.stop(start + duration + 0.02);
 }
-
-document.getElementById("checkButton").addEventListener("click", checkInput);
-document.getElementById("repeatButton").addEventListener("click", repeatIncoming);
-
-document.getElementById("morseInput").addEventListener("keydown", function (event) {
-  if (event.key === "Enter" && event.ctrlKey) {
-    checkInput();
-  }
-});
