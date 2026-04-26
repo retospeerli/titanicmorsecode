@@ -36,8 +36,8 @@ const FLOW = [
   {
     type: "receive",
     msg: {
-      de: "MGY DE MCP SOFORT KOMMEN HABEN EISBERG GERAMMT",
-      en: "MGY DE MCP COME AT ONCE WE HAVE STRUCK ICEBERG"
+      de: "MGY DE MCP VERSTANDEN",
+      en: "MGY DE MCP RECEIVED"
     }
   },
 
@@ -52,16 +52,16 @@ const FLOW = [
   {
     type: "receive",
     msg: {
-      de: "MGY DE MPA WAS IST IHRE POSITION",
-      en: "MGY DE MPA WHAT IS YOUR POSITION"
+      de: "MGY DE MCP WAS IST IHRE POSITION",
+      en: "MGY DE MCP WHAT IS YOUR POSITION"
     }
   },
 
   {
     type: "send",
     msg: {
-      de: "MPA DE MGY 41.44 N 50.24 W FORDERE SOFORTIGE HILFE AN",
-      en: "MPA DE MGY 41.44 N 50.24 W REQUIRE IMMEDIATE ASSISTANCE"
+      de: "MCP DE MGY 41.44 N 50.24 W FORDERE SOFORTIGE HILFE AN",
+      en: "MCP DE MGY 41.44 N 50.24 W REQUIRE IMMEDIATE ASSISTANCE"
     }
   },
 
@@ -73,17 +73,15 @@ const FLOW = [
     }
   },
 
-  {
-    type: "receive",
-    msg: {
-      de: "MGY DE MPA SIND UNTERWEGS",
-      en: "MGY DE MPA ON OUR WAY"
-    }
-  },
-
   { type: "video", src: "titanic2.mp4" },
 
-  { type: "send", msg: "MGY CQD CQD DE MGY WE ARE SINKING FAST PASSENGERS BEING PUT INTO BOATS" },
+  {
+    type: "send",
+    msg: {
+      de: "MGY SOS SOS DE MGY WIR SINKEN SCHNELL PASSAGIERE IN BOOTE",
+      en: "MGY SOS SOS DE MGY WE ARE SINKING FAST PASSENGERS BEING PUT INTO BOATS"
+    }
+  },
 
   { type: "video", src: "titanic3.mp4" },
 
@@ -109,21 +107,13 @@ let down = false;
 let t0 = 0;
 let letterTimer = null;
 let finishTimer = null;
+let playToken = 0;
 
-function setLang(l) {
-  lang = l;
-
-  document.getElementById("keyInfo").textContent =
-    lang === "de" ? "Morsetaste: Leertaste" : "Morse key: Space";
-
-  document.getElementById("keyBtn").textContent =
-    lang === "de" ? "Taste wählen" : "Choose key";
-
-  document.getElementById("symbolLabel").textContent =
-    lang === "de" ? "Zeichen" : "Symbol";
-}
+document.getElementById("deBtn").onclick = () => setLang("de");
+document.getElementById("enBtn").onclick = () => setLang("en");
 
 document.getElementById("startBtn").onclick = () => {
+  ensureAudio();
   startScreen.classList.remove("active");
   appScreen.classList.add("active");
   next();
@@ -136,8 +126,12 @@ document.getElementById("keyBtn").onclick = () => {
 };
 
 document.getElementById("checkBtn").onclick = checkReceive;
+
 document.getElementById("repeatBtn").onclick = () => {
-  if (currentReceiveMessage) play(currentReceiveMessage);
+  if (currentReceiveMessage) {
+    strip.textContent = "";
+    play(currentReceiveMessage, true);
+  }
 };
 
 receiveInput.addEventListener("keydown", (e) => {
@@ -177,8 +171,30 @@ window.addEventListener("blur", () => {
   if (down) pressEnd();
 });
 
+function setLang(l) {
+  lang = l;
+
+  document.getElementById("keyTitle").textContent =
+    lang === "de" ? "Morsetaste wählen" : "Choose Morse key";
+
+  document.getElementById("keyInfo").textContent =
+    lang === "de" ? "Morsetaste: Leertaste" : "Morse key: Space";
+
+  document.getElementById("keyBtn").textContent =
+    lang === "de" ? "Taste wählen" : "Choose key";
+
+  document.getElementById("symbolLabel").textContent =
+    lang === "de" ? "Zeichen" : "Symbol";
+
+  document.getElementById("endText").textContent =
+    lang === "de" ? "Passwort 3 wird gemorst:" : "Password 3 is sent in Morse:";
+}
+
 function next() {
   clearTimers();
+  stop();
+  playToken++;
+
   input = "";
   currentSymbol = "";
   currentReceiveMessage = "";
@@ -224,8 +240,7 @@ function next() {
     receiveBox.classList.add("active");
     receiveInput.focus();
 
-    strip.textContent = toMorse(currentReceiveMessage);
-    play(currentReceiveMessage);
+    play(currentReceiveMessage, true);
     return;
   }
 
@@ -255,8 +270,7 @@ function pressEnd() {
   currentSymbol += part;
   symbol.textContent = currentSymbol;
 
-  strip.textContent += part;
-  strip.scrollLeft = strip.scrollWidth;
+  appendStrip(part);
 
   clearTimeout(letterTimer);
   letterTimer = setTimeout(finishLetter, LETTER);
@@ -269,9 +283,7 @@ function finishLetter() {
   if (!currentSymbol) return;
 
   input += REV[currentSymbol] || "?";
-
-  strip.textContent += " ";
-  strip.scrollLeft = strip.scrollWidth;
+  appendStrip(" ");
 
   currentSymbol = "";
   symbol.textContent = "–";
@@ -282,7 +294,7 @@ function checkSend() {
 
   const current = FLOW[step];
   const expected = getMsg(current.msg);
-  const mistakes = countDifferences(norm(input), norm(expected));
+  const mistakes = levenshtein(norm(input), norm(expected));
 
   if (mistakes <= MAX_ERRORS) ok();
   else fail();
@@ -293,7 +305,7 @@ function checkReceive() {
   if (!current || current.type !== "receive") return;
 
   const expected = getMsg(current.msg);
-  const mistakes = countDifferences(norm(receiveInput.value), norm(expected));
+  const mistakes = levenshtein(norm(receiveInput.value), norm(expected));
 
   if (mistakes <= MAX_ERRORS) ok();
   else fail();
@@ -313,7 +325,7 @@ function fail() {
   feedback.textContent = lang === "de" ? "Nicht verstanden" : "Not understood";
   feedback.className = "show";
 
-  play("?");
+  play("?", false);
 
   setTimeout(() => {
     next();
@@ -328,7 +340,7 @@ function finish() {
 
   const password = "GUGLIELMO MARCONI";
   document.getElementById("password").textContent = toMorse(password);
-  play(password);
+  play(password, false);
 }
 
 function popup(src) {
@@ -342,7 +354,11 @@ function popup(src) {
   const video = d.querySelector("video");
   const button = d.querySelector("button");
 
+  let closed = false;
+
   function close() {
+    if (closed) return;
+    closed = true;
     video.pause();
     d.remove();
     step++;
@@ -373,16 +389,24 @@ function norm(t) {
     .replace(/[^A-Z0-9]/g, "");
 }
 
-function countDifferences(a, b) {
-  const max = Math.max(a.length, b.length);
-  let diff = Math.abs(a.length - b.length);
+function levenshtein(a, b) {
+  const dp = Array.from({ length: a.length + 1 }, () => []);
 
-  const min = Math.min(a.length, b.length);
-  for (let i = 0; i < min; i++) {
-    if (a[i] !== b[i]) diff++;
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
   }
 
-  return diff;
+  return dp[a.length][b.length];
 }
 
 function toMorse(t) {
@@ -394,6 +418,11 @@ function toMorse(t) {
       return MORSE[c] || "";
     })
     .join(" ");
+}
+
+function appendStrip(text) {
+  strip.textContent += text;
+  strip.scrollLeft = strip.scrollWidth;
 }
 
 function readableKey(e) {
@@ -433,15 +462,19 @@ function stop() {
   }
 }
 
-async function play(txt) {
+async function play(txt, transcribe) {
   ensureAudio();
 
+  const myToken = ++playToken;
   disableReceive(true);
 
   const clean = String(txt || "").toUpperCase();
 
   for (const c of clean) {
+    if (myToken !== playToken) return;
+
     if (c === " ") {
+      if (transcribe) appendStrip("   ");
       await sleep(UNIT * 7);
       continue;
     }
@@ -450,12 +483,17 @@ async function play(txt) {
     if (!m) continue;
 
     for (const part of m) {
+      if (myToken !== playToken) return;
+
+      if (transcribe) appendStrip(part);
+
       tone();
       await sleep(part === "." ? UNIT : UNIT * 3);
       stop();
       await sleep(UNIT);
     }
 
+    if (transcribe) appendStrip(" ");
     await sleep(UNIT * 2);
   }
 
