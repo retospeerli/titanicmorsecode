@@ -35,7 +35,7 @@ body {
 #endBox {
   position: fixed;
   top: 50%;
-  left: 50%;
+  left: 80%;
   width: min(520px, 90vw);
   transform: translate(-50%, -50%);
   background: rgba(216, 194, 154, 0.9);
