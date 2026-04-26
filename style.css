@@ -9,8 +9,6 @@ html, body {
   color: #24180f;
 }
 
-/* ===== HINTERGRÜNDE ===== */
-
 body {
   background-size: cover;
   background-position: center;
@@ -19,18 +17,16 @@ body {
 }
 
 body.bg-start {
-  background-image: url("RMSTitanic.jpg");
+  background-image: url("./RMSTitanic.jpg");
 }
 
 body.bg-video {
-  background-image: url("titanicfunkraum.png");
+  background-image: url("./titanicfunkraum.png");
 }
 
 body.bg-task {
-  background-image: url("titanicfunkraum2.jpg");
+  background-image: url("./titanicfunkraum2.jpg");
 }
-
-/* ===== BUTTONS ===== */
 
 button {
   font-family: "Courier New", Courier, monospace;
@@ -52,8 +48,6 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* ===== SCREENS ===== */
-
 .screen {
   display: none;
   min-height: 100vh;
@@ -64,15 +58,13 @@ button:disabled {
   display: block;
 }
 
-/* ===== START / ENDE ===== */
-
 #startBox,
 #passedBox {
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
   width: min(520px, 90vw);
+  transform: translate(-50%, -50%);
   padding: 1.4rem;
   text-align: center;
   background: rgba(216, 194, 154, 0.9);
@@ -93,8 +85,6 @@ button:disabled {
   margin: 1rem 0;
 }
 
-/* ===== AUFTRAGSKARTE (unten rechts, transparent) ===== */
-
 #taskCard {
   position: absolute;
   right: 5.3vw;
@@ -104,19 +94,15 @@ button:disabled {
   height: 18vh;
   min-height: 135px;
   padding: 1.2rem 1.35rem;
-
   background: transparent;
   border: none;
   box-shadow: none;
-
   color: #2b1a10;
   font-size: clamp(0.9rem, 1.15vw, 1.18rem);
   line-height: 1.35;
   white-space: pre-wrap;
   overflow: hidden;
 }
-
-/* ===== EMPFANGS-EINGABE ===== */
 
 #receivePanel {
   display: none;
@@ -125,9 +111,7 @@ button:disabled {
   bottom: 28vh;
   width: 27vw;
   min-width: 310px;
-
   padding: 0.8rem;
-
   background: rgba(216, 194, 154, 0.86);
   border: 2px solid rgba(40, 25, 12, 0.75);
   box-shadow: 0 0 16px rgba(0,0,0,0.45);
@@ -146,15 +130,11 @@ button:disabled {
   width: 100%;
   padding: 0.6rem;
   margin-bottom: 0.6rem;
-
   font-family: "Courier New", Courier, monospace;
   font-size: 1rem;
-
   border: 2px solid #2b1b10;
   background: #f1dfb8;
 }
-
-/* ===== MORSE-ANZEIGE ===== */
 
 #morseStrip {
   position: absolute;
@@ -162,30 +142,22 @@ button:disabled {
   bottom: 3vh;
   width: 38vw;
   min-height: 42px;
-
   padding: 0.5rem 0.8rem;
-
   background: rgba(22, 13, 7, 0.75);
   border: 1px solid rgba(231, 212, 165, 0.7);
   color: #e7d4a5;
-
   white-space: nowrap;
   overflow-x: auto;
-
   font-size: 1rem;
   letter-spacing: 0.12em;
 }
-
-/* ===== AKTUELLES ZEICHEN ===== */
 
 #currentSymbolBox {
   position: absolute;
   left: 3vw;
   bottom: 3vh;
-
   width: 230px;
   padding: 0.75rem;
-
   background: rgba(216, 194, 154, 0.82);
   border: 2px solid rgba(40, 25, 12, 0.75);
   box-shadow: 0 0 14px rgba(0,0,0,0.45);
@@ -198,22 +170,16 @@ button:disabled {
   letter-spacing: 0.12em;
 }
 
-/* ===== FEEDBACK ===== */
-
 #feedback {
   display: none;
-
   position: absolute;
   left: 3vw;
   bottom: 15vh;
-
   width: 260px;
   padding: 0.75rem;
-
   background: rgba(216, 194, 154, 0.88);
   border: 2px solid rgba(40, 25, 12, 0.75);
   box-shadow: 0 0 14px rgba(0,0,0,0.45);
-
   font-weight: bold;
 }
 
@@ -229,21 +195,15 @@ button:disabled {
   color: #671313;
 }
 
-/* ===== PASSWORT ===== */
-
 #passwordMorse {
   margin-top: 1rem;
   padding: 0.9rem;
-
   background: rgba(22, 13, 7, 0.86);
   color: #e7d4a5;
-
   text-align: left;
   white-space: pre-wrap;
   letter-spacing: 0.1em;
 }
-
-/* ===== VIDEO POPUP ===== */
 
 .videoOverlay {
   position: fixed;
@@ -274,10 +234,7 @@ button:disabled {
   margin-top: 0.8rem;
 }
 
-/* ===== MOBILE ===== */
-
 @media (max-width: 900px) {
-
   #taskCard,
   #receivePanel {
     left: 8vw;
