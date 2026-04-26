@@ -66,18 +66,19 @@ button:disabled {
 
 #taskCard {
   position: absolute;
-  right: 5vw;
-  bottom: 8vh;
-  width: 26vw;
-  min-width: 280px;
-  height: 16vh;
-  padding: 1rem;
+  right: 7vw;
+  bottom: 11vh;
+  width: 27vw;
+  min-width: 300px;
+  height: 18vh;
+  padding: 0.6rem 0.8rem;
   background: transparent;
-  color: #2b1a10;
+  color: #21140b;
   white-space: pre-wrap;
   overflow: hidden;
-  font-size: clamp(0.9rem, 1.1vw, 1.15rem);
-  line-height: 1.35;
+  font-size: clamp(1.05rem, 1.28vw, 1.35rem);
+  font-weight: 700;
+  line-height: 1.32;
 }
 
 #receiveBox {
@@ -111,15 +112,19 @@ button:disabled {
   left: 3vw;
   right: 3vw;
   bottom: 2vh;
-  height: 38px;
-  background: rgba(0,0,0,0.72);
-  color: #e7d4a5;
-  padding: 8px 12px;
+  height: 42px;
+  background:
+    linear-gradient(rgba(255,255,255,0.18), rgba(0,0,0,0.04)),
+    rgba(216,194,154,0.88);
+  color: #21140b;
+  padding: 9px 14px;
   overflow-x: auto;
   white-space: nowrap;
   letter-spacing: 0.14em;
-  font-size: 1rem;
-  border: 1px solid rgba(231, 212, 165, 0.6);
+  font-size: 1.05rem;
+  font-weight: 700;
+  border: 2px solid rgba(43,27,16,0.7);
+  box-shadow: 0 0 14px rgba(0,0,0,0.45);
 }
 
 #symbolBox {
