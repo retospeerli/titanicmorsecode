@@ -34,15 +34,15 @@ body {
 #startBox {
   position: fixed;
   top: 3vh;
-  left: 10vw;
-  width: 300px;
+  left: 12vw;
+  width: 350px;
   padding: 1rem;
   background: transparent;
   border: none;
   box-shadow: none;
   text-align: left;
-  color: #f5e6c4;
-  text-shadow: 0 0 6px rgba(0,0,0,0.9);
+  color: #000;
+  text-shadow: none;
 }
 
 #startBox h1 {
@@ -86,7 +86,7 @@ button:disabled {
 
 #taskCard {
   position: absolute;
-  right: 11vw;
+  right: 15vw;
   bottom: 11vh;
   width: 275px;
   height: 18vh;
