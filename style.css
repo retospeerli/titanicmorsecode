@@ -86,9 +86,9 @@ button:disabled {
 
 #taskCard {
   position: absolute;
-  right: 15vw;
+  right: 19vw;
   bottom: 11vh;
-  width: 275px;
+  width: 290px;
   height: 18vh;
   padding: 0.6rem 0.8rem;
   background: transparent;
