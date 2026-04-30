@@ -10,7 +10,8 @@ let currentReceiveMessage = "";
 const UNIT = 100;
 const DOT = UNIT * 2;
 const LETTER = UNIT * 3;
-const FINISH = 3000;
+const CONTINUE_WAIT = 5000;
+const RPT_AFTER_K_WAIT = 3000;
 const MAX_ERRORS = 3;
 
 const MORSE = {
@@ -22,8 +23,7 @@ const MORSE = {
   Z: "--..",
   0: "-----", 1: ".----", 2: "..---", 3: "...--", 4: "....-",
   5: ".....", 6: "-....", 7: "--...", 8: "---..", 9: "----.",
-  ".": ".-.-.-",
-  "?": "..--.."
+  ".": ".-.-.-"
 };
 
 const REV = Object.fromEntries(Object.entries(MORSE).map(([k, v]) => [v, k]));
@@ -31,18 +31,20 @@ const REV = Object.fromEntries(Object.entries(MORSE).map(([k, v]) => [v, k]));
 const FLOW = [
   { type: "video", src: "titanic1.mp4" },
 
-  { type: "send", msg: "CQD CQD CQD DE MGY MGY MGY" },
+  { type: "send", msg: "CQD CQD CQD DE MGY MGY MGY", needsAK: false },
 
   {
     type: "receive",
     msg: {
-      de: "MGY DE MCP VERSTANDEN",
-      en: "MGY DE MCP RECEIVED"
-    }
+      de: "MGY DE MCP VERSTANDEN AK",
+      en: "MGY DE MCP RECEIVED AK"
+    },
+    akOptional: true
   },
 
   {
     type: "send",
+    needsAK: true,
     msg: {
       de: "MCP DE MGY SOFORT KOMMEN HABEN EISBERG GERAMMT",
       en: "MCP DE MGY COME AT ONCE WE HAVE STRUCK ICEBERG"
@@ -52,13 +54,15 @@ const FLOW = [
   {
     type: "receive",
     msg: {
-      de: "MGY DE MCP WAS IST IHRE POSITION",
-      en: "MGY DE MCP WHAT IS YOUR POSITION"
-    }
+      de: "MGY DE MCP WAS IST IHRE POSITION AK",
+      en: "MGY DE MCP WHAT IS YOUR POSITION AK"
+    },
+    akOptional: true
   },
 
   {
     type: "send",
+    needsAK: true,
     msg: {
       de: "MCP DE MGY 41.44 N 50.24 W FORDERE SOFORTIGE HILFE AN",
       en: "MCP DE MGY 41.44 N 50.24 W REQUIRE IMMEDIATE ASSISTANCE"
@@ -68,15 +72,17 @@ const FLOW = [
   {
     type: "receive",
     msg: {
-      de: "MGY DE MCP VERSTANDEN FAHREN MIT VOLLER KRAFT",
-      en: "MGY DE MCP RECEIVED COMING AT FULL SPEED"
-    }
+      de: "MGY DE MCP VERSTANDEN FAHREN MIT VOLLER KRAFT AK",
+      en: "MGY DE MCP RECEIVED COMING AT FULL SPEED AK"
+    },
+    akOptional: true
   },
 
   { type: "video", src: "titanic2.mp4" },
 
   {
     type: "send",
+    needsAK: false,
     msg: {
       de: "MGY SOS SOS DE MGY WIR SINKEN SCHNELL PASSAGIERE IN BOOTE",
       en: "MGY SOS SOS DE MGY WE ARE SINKING FAST PASSENGERS BEING PUT INTO BOATS"
@@ -106,7 +112,9 @@ let osc = null;
 let down = false;
 let t0 = 0;
 let letterTimer = null;
-let finishTimer = null;
+let continueTimer = null;
+let rptAfterKTimer = null;
+let kIssued = false;
 let playToken = 0;
 
 document.getElementById("deBtn").onclick = () => setLang("de");
@@ -198,6 +206,7 @@ function next() {
   input = "";
   currentSymbol = "";
   currentReceiveMessage = "";
+  kIssued = false;
 
   symbol.textContent = "–";
   feedback.className = "";
@@ -218,7 +227,7 @@ function next() {
 
   if (current.type === "send") {
     setBG("task");
-    const msg = getMsg(current.msg);
+    const msg = getExpectedSendMessage(current);
     taskCard.textContent =
       (lang === "de" ? "Sende diese Nachricht:" : "Transmit this message:") +
       "\n\n" + msg;
@@ -251,10 +260,16 @@ function pressStart() {
   if (down) return;
 
   clearTimeout(letterTimer);
-  clearTimeout(finishTimer);
+  clearTimeout(continueTimer);
+  clearTimeout(rptAfterKTimer);
 
+  kIssued = false;
   down = true;
   t0 = Date.now();
+
+  feedback.className = "";
+  feedback.textContent = "";
+
   tone();
 }
 
@@ -275,8 +290,8 @@ function pressEnd() {
   clearTimeout(letterTimer);
   letterTimer = setTimeout(finishLetter, LETTER);
 
-  clearTimeout(finishTimer);
-  finishTimer = setTimeout(checkSend, FINISH);
+  clearTimeout(continueTimer);
+  continueTimer = setTimeout(handleMorsePause, CONTINUE_WAIT);
 }
 
 function finishLetter() {
@@ -289,11 +304,46 @@ function finishLetter() {
   symbol.textContent = "–";
 }
 
+function handleMorsePause() {
+  finishLetter();
+
+  const current = FLOW[step];
+  if (!current || current.type !== "send") return;
+
+  const expected = getExpectedSendMessage(current);
+  const mistakes = levenshtein(norm(input), norm(expected));
+
+  if (mistakes <= MAX_ERRORS) {
+    ok(mistakes);
+    return;
+  }
+
+  if (current.needsAK && norm(input).endsWith("AK")) {
+    checkSend();
+    return;
+  }
+
+  showContinueK();
+}
+
+function showContinueK() {
+  feedback.textContent = "K";
+  feedback.className = "show";
+  play("K", false);
+
+  kIssued = true;
+
+  clearTimeout(rptAfterKTimer);
+  rptAfterKTimer = setTimeout(() => {
+    if (kIssued) fail();
+  }, RPT_AFTER_K_WAIT);
+}
+
 function checkSend() {
   finishLetter();
 
   const current = FLOW[step];
-  const expected = getMsg(current.msg);
+  const expected = getExpectedSendMessage(current);
   const mistakes = levenshtein(norm(input), norm(expected));
 
   if (mistakes <= MAX_ERRORS) ok(mistakes);
@@ -305,7 +355,15 @@ function checkReceive() {
   if (!current || current.type !== "receive") return;
 
   const expected = getMsg(current.msg);
-  const mistakes = levenshtein(norm(receiveInput.value), norm(expected));
+  const typed = receiveInput.value;
+
+  let mistakes = levenshtein(norm(typed), norm(expected));
+
+  if (current.akOptional) {
+    const expectedWithoutAK = removeTrailingAK(expected);
+    const mistakesWithoutAK = levenshtein(norm(typed), norm(expectedWithoutAK));
+    mistakes = Math.min(mistakes, mistakesWithoutAK);
+  }
 
   if (mistakes <= MAX_ERRORS) ok(mistakes);
   else fail();
@@ -324,14 +382,16 @@ function ok(mistakes = 0) {
 }
 
 function fail() {
-  feedback.textContent = lang === "de" ? "Nicht verstanden" : "Not understood";
+  clearTimers();
+
+  feedback.textContent = "RPT";
   feedback.className = "show";
 
-  play("?", false);
+  play("RPT", false);
 
   setTimeout(() => {
     next();
-  }, 1300);
+  }, 1600);
 }
 
 function getQRKScore(mistakes) {
@@ -340,6 +400,17 @@ function getQRKScore(mistakes) {
   if (mistakes === 2) return 3;
   if (mistakes === 3) return 2;
   return 1;
+}
+
+function getExpectedSendMessage(stepObj) {
+  const base = getMsg(stepObj.msg);
+  return stepObj.needsAK ? `${base} AK` : base;
+}
+
+function removeTrailingAK(text) {
+  return String(text || "")
+    .replace(/\s+AK\s*$/i, "")
+    .trim();
 }
 
 function finish() {
@@ -517,9 +588,12 @@ function disableReceive(disabled) {
 
 function clearTimers() {
   clearTimeout(letterTimer);
-  clearTimeout(finishTimer);
+  clearTimeout(continueTimer);
+  clearTimeout(rptAfterKTimer);
+
   letterTimer = null;
-  finishTimer = null;
+  continueTimer = null;
+  rptAfterKTimer = null;
 }
 
 function sleep(ms) {
