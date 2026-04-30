@@ -78,6 +78,15 @@ const FLOW = [
     akOptional: true
   },
 
+  {
+    type: "receive",
+    msg: {
+      de: "MGY DE MPA SIND UNTERWEGS AK",
+      en: "MGY DE MPA ON OUR WAY AK"
+    },
+    akOptional: true
+  },
+
   { type: "video", src: "titanic2.mp4" },
 
   {
@@ -315,11 +324,6 @@ function handleMorsePause() {
 
   if (mistakes <= MAX_ERRORS) {
     ok(mistakes);
-    return;
-  }
-
-  if (current.needsAK && norm(input).endsWith("AK")) {
-    checkSend();
     return;
   }
 
