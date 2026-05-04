@@ -86,18 +86,28 @@ button:disabled {
 
 #taskCard {
   position: absolute;
-  right: 19vw;
-  bottom: 12vh;
-  width: 290px;
-  height: 18vh;
-  padding: 0.6rem 0.8rem;
-  background: transparent;
+  right: 5vw;
+  bottom: 8vh;
+  width: min(360px, 30vw);
+  min-width: 280px;
+  min-height: 170px;
+
+  padding: 1rem 1.1rem;
+
+  background:
+    linear-gradient(rgba(255,255,255,0.22), rgba(0,0,0,0.04)),
+    rgba(216,194,154,0.94);
+
+  border: 2px solid rgba(43,27,16,0.65);
+  box-shadow: 0 0 18px rgba(0,0,0,0.45);
+
   color: #21140b;
   white-space: pre-wrap;
   overflow: hidden;
-  font-size: clamp(1.05rem, 1.28vw, 1.35rem);
+
+  font-size: clamp(1rem, 1.15vw, 1.25rem);
   font-weight: 700;
-  line-height: 1.32;
+  line-height: 1.25;
   word-break: break-word;
 }
 
